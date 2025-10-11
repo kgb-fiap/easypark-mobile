@@ -23,13 +23,6 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.container}>
 
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons
-                        name={"return-down-back"}
-                        size={26}
-                        color="#ffffff"
-                    />
-                </TouchableOpacity>
                 <Text style={styles.title}>Configurações</Text>
                 <View style={{ width: 24 }} />
             </View>
@@ -41,7 +34,8 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons name="chevron-forward" size={22} color="#888" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.card}>
+                <TouchableOpacity style={styles.card}
+                    onPress={() => navigation.navigate("PaymentMethods")}>
                     <Ionicons name="card-outline" size={24} color="#03BB85" />
                     <Text style={styles.cardText}>Formas de pagamento</Text>
                     <Ionicons name="chevron-forward" size={22} color="#888" />

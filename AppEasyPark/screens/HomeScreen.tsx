@@ -28,7 +28,6 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.header}>
                 <View>
                     <Text style={styles.greeting}>Olá, Fulano</Text>
-                    <Text style={styles.subtitle}>Para onde você quer estacionar?</Text>
                 </View>
 
                 <View style={styles.headerIcons}>
@@ -104,18 +103,13 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         fontSize: 22,
         fontWeight: "bold",
     },
-    subtitle: {
-        color: "#eaeaea",
-        marginTop: 5,
-        fontSize: 14,
-    },
     headerIcons: {
         flexDirection: "row",
         gap: 15,
     },
     searchBar: {
         position: 'absolute',
-        top: 160, 
+        top: 130, 
         left: 20,
         right: 20,
         backgroundColor: "#A9A9A9",

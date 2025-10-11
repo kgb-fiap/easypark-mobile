@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { RootStackParamList } from "../App";
 
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 
 type HistoryScreenNavigationProp = StackNavigationProp<RootStackParamList, "History">;
 
@@ -70,13 +70,6 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.container}>
 
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons
-                        name={"return-down-back"}
-                        size={26}
-                        color="#ffffff"
-                    />
-                </TouchableOpacity>
                 <Text style={styles.title}>Histórico</Text>
                 <View style={{ width: 24 }} />
             </View>

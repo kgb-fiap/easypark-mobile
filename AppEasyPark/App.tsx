@@ -7,8 +7,9 @@ import WelcomeScreen from "./screens/WelcomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
-import SettingsScreen from "./screens/SettingsScreen";
 import HistoryScreen from "./screens/HistoryScreen";
+import SettingsScreen from "./screens/SettingsScreen";
+import PaymentMethodsScreen from "./screens/PaymentMethodsScreen"
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   Home: undefined;
   Settings: undefined;
   History: undefined;
+  PaymentMethods : undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -33,6 +35,7 @@ export default function App() {
           <Stack.Screen name="Home" component={HomeScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
