@@ -4,6 +4,8 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
@@ -22,6 +24,44 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useTheme();
   const currentColors = colors[theme];
   const styles = getStyles(currentColors);
+
+  const handleLogin = async () => {
+    // 1. Valida se os campos não estão vazios
+    if (!email.trim() || !senha) {
+      Toast.show({ type: 'error', text1: 'Erro', text2: 'Por favor, preencha e-mail e senha.' });
+      return;
+    }
+
+    try {
+      // 2. Tenta buscar os dados do usuário salvos no AsyncStorage
+      const savedUserJson = await AsyncStorage.getItem('@user_credentials');
+
+      // 3. Verifica se existe algum usuário cadastrado
+      if (savedUserJson === null) {
+        Toast.show({ type: 'error', text1: 'Erro de Login', text2: 'Nenhum usuário cadastrado.' });
+        return;
+      }
+
+      const savedUser = JSON.parse(savedUserJson);
+
+      // 4. Compara o e-mail e a senha digitados com os dados salvos
+      if (email.toLowerCase() === savedUser.email.toLowerCase() && senha === savedUser.password) {
+        // Se o login for bem-sucedido: salva o nome do usuário novamente para garantir que a Home o exiba
+        await AsyncStorage.setItem('@user_name', savedUser.name);
+
+        Toast.show({ type: 'success', text1: `Bem-vindo de volta, ${savedUser.name.split(' ')[0]}!` });
+        setTimeout(() => navigation.navigate("Home"), 1500);
+
+      } else {
+        // Se não: credenciais incorretas
+        Toast.show({ type: 'error', text1: 'Erro de Login', text2: 'E-mail ou senha incorretos.' });
+      }
+
+    } catch (e) {
+      console.error("Falha ao tentar logar.", e);
+      Toast.show({ type: 'error', text1: 'Erro', text2: 'Ocorreu um problema ao tentar fazer login.' });
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -75,8 +115,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.greenButton}
-              onPress={() => navigation.navigate("Home")}>
+            <TouchableOpacity style={styles.greenButton} onPress={handleLogin}>
               <Text style={styles.buttonText}>Entrar</Text>
             </TouchableOpacity>
 

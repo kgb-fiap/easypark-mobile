@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors, ThemeName } from '../src/theme/colors';
@@ -14,10 +15,34 @@ interface Props {
 }
 
 const HomeScreen: React.FC<Props> = ({ navigation }) => {
+
     const { theme, toggleTheme } = useTheme();
     const currentColors = colors[theme];
-
     const styles = getStyles(currentColors, theme);
+
+    const [userName, setUserName] = useState<string>('Usuário'); // Nome padrão
+
+    useEffect(() => {
+        // Função para buscar os dados do usuário:
+        const loadUserName = async () => {
+            try {
+                // 1. Busca o nome do usuário salvo no armazenamento do dispositivo
+                const storedName = await AsyncStorage.getItem('@user_name');
+
+                // 2. Se um nome foi encontrado, atualiza o estado.
+                if (storedName !== null) {
+                    // 2.5 Pega o primeiro nome para a saudação
+                    const firstName = storedName.split(' ')[0];
+                    setUserName(firstName);
+                }
+            } catch (e) {
+                // Em caso de erro:
+                console.error("Falha ao carregar o nome.", e);
+            }
+        };
+        // 3. Executa a função de carregamento
+        loadUserName();
+    }, []); // O array vazio garante que o efeito execute apenas na montagem do componente e apenas uma única vez
 
     return (
         <View style={styles.container}>
@@ -27,15 +52,15 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.greeting}>Olá, Fulano</Text>
+                    <Text style={styles.greeting}>Olá, {userName}</Text>
                 </View>
 
                 <View style={styles.headerIcons}>
                     <TouchableOpacity onPress={toggleTheme}>
-                        <Ionicons 
-                            name={theme === 'light' ? 'moon-outline' : 'sunny-outline'} 
-                            size={24} 
-                            color="#fff" 
+                        <Ionicons
+                            name={theme === 'light' ? 'moon-outline' : 'sunny-outline'}
+                            size={24}
+                            color="#fff"
                         />
                     </TouchableOpacity>
                 </View>
@@ -43,7 +68,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
             <TouchableOpacity
                 style={styles.searchBar}
-                // onPress={() => navigation.navigate("Search")} 
+            // onPress={() => navigation.navigate("Search")} 
             >
                 <Ionicons name="search" size={20} color={currentColors.text} />
                 <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
@@ -109,7 +134,7 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
     },
     searchBar: {
         position: 'absolute',
-        top: 130, 
+        top: 130,
         left: 20,
         right: 20,
         backgroundColor: "#A9A9A9",

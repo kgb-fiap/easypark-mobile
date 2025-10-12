@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, TouchableWithoutFeedback, Keyboard } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, TouchableWithoutFeedback, Keyboard, Alert } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { Ionicons } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
@@ -28,6 +30,73 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { theme } = useTheme();
   const currentColors = colors[theme];
   const styles = getStyles(currentColors);
+
+  const handleRegister = async () => {
+    // 1. Valida se os campos não estão vazios
+    if (!nome.trim() || !email.trim() || !senha || !confSenha) {
+      Toast.show({
+        type: 'error',
+        text1: 'Campos Incompletos',
+        text2: 'Por favor, preencha todos os campos.',
+        position: 'top',
+      });
+      return;
+    }
+
+    // 2. Valida o formato do nome
+    if (/\d/.test(nome)) {
+      return;
+    }
+
+    // 3. Valida se as senhas coincidem
+    if (senha !== confSenha) {
+      Toast.show({
+        type: 'error',
+        text1: 'Senhas diferentes',
+        text2: 'Os campos de senhas não coincidem.',
+        position: 'top',
+      });
+      return;
+    }
+
+    // Se as validações passarem, salva os dados:
+    try {
+      const user = {
+        name: nome,
+        email: email,
+        password: senha,
+      };
+
+      // Salvando o objeto "user" como uma string JSON
+      await AsyncStorage.setItem('@user_credentials', JSON.stringify(user));
+
+      // Salva o nome do usuário para exibir na Home
+      await AsyncStorage.setItem('@user_name', nome);
+
+      // Exibe a mensagem de sucesso no cadastro
+      Toast.show({
+        type: 'success',
+        text1: `Bem-vindo, ${nome}!`,
+        text2: `Cadastro realizado com sucesso!`,
+        position: 'top',
+      });
+
+      // E em seguida, navega para a tela de Home
+      setTimeout(() => {
+        navigation.navigate("Home");
+      }, 1500);
+
+      // Em caso de erro exibe uma mensagem:
+    } catch (e) {
+      console.error("Falha ao salvar o nome.", e);
+      Toast.show({
+        type: 'error',
+        text1: 'Erro',
+        text2: 'Não foi possível salvar os dados do usuário.',
+        position: 'top',
+      });
+    }
+  };
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -57,9 +126,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.input}
               placeholder="Digite seu nome completo"
               placeholderTextColor={currentColors.muted}
-              keyboardType="default"
               value={nome}
-              onChangeText={setNome}
+              onChangeText={(text) => setNome(text.replace(/[0-9]/g, ''))}
             />
 
             <Text style={styles.label}>Email</Text>
@@ -68,6 +136,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Digite seu email"
               placeholderTextColor={currentColors.muted}
               keyboardType="email-address"
+              autoCapitalize="none"
               value={email}
               onChangeText={setEmail}
             />
@@ -114,8 +183,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.greenButton}
-              onPress={() => navigation.navigate("Home")}>
+            <TouchableOpacity style={styles.greenButton} onPress={handleRegister}>
               <Text style={styles.buttonText}>Cadastrar</Text>
             </TouchableOpacity>
 
@@ -134,8 +202,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.footer}>
           <Image
             source={
-              theme === 'light' 
-                ? require("../assets/miniLogoGreen.png") 
+              theme === 'light'
+                ? require("../assets/miniLogoGreen.png")
                 : require("../assets/miniLogoWhite.png")
             }
             style={styles.miniLogo}
