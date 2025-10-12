@@ -2,6 +2,7 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { ThemeProvider } from './src/context/ThemeContext';
+import Toast from 'react-native-toast-message';
 
 import WelcomeScreen from "./screens/WelcomeScreen";
 import LoginScreen from "./screens/LoginScreen";
@@ -38,6 +39,7 @@ export default function App() {
           <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
+      <Toast />
     </ThemeProvider>
   );
 }
