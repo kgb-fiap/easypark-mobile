@@ -84,6 +84,6 @@ O ThemeContext.tsx gerencia o estado do tema (claro ou escuro). Ele utiliza o As
 
 ## **✨ Criadores**
 
-* [@gabrielCZz](https://github.com/orgs/kgb-fiap/people/gabrielCZz)  
-* [@k-auaferreira](https://github.com/orgs/kgb-fiap/people/k-auaferreira)  
-* [@Vi-debu](https://github.com/orgs/kgb-fiap/people/Vi-debu)
+* [@gabrielCZz](https://github.com/orgs/kgb-fiap/people/gabrielCZz) - Gabriel Cruz | RM 559613
+* [@k-auaferreira](https://github.com/orgs/kgb-fiap/people/k-auaferreira) - Kauã Ferreira | RM 560992
+* [@Vi-debu](https://github.com/orgs/kgb-fiap/people/Vi-debu) - Vinicius Bitú | RM 560227
