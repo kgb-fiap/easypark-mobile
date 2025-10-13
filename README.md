@@ -41,7 +41,7 @@ Siga os passos abaixo para rodar o projeto em seu ambiente de desenvolvimento.
 1. **Clone o repositório:**
 ```
 git clone \[https://github.com/FIAP-MOBILE-2025-Agosto/sc-1-kgb.git\](https://github.com/FIAP-MOBILE-2025-Agosto/sc-1-kgb.git)  
-cd easypark
+cd AppEasyPark
 ```
 
 2. **Instale as dependências:**  
