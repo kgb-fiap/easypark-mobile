@@ -6,7 +6,7 @@ Bem-vindo ao repositório do EasyPark, um aplicativo móvel desenvolvido com Rea
 
 O design do aplicativo foi criado no Figma, focando em uma interface minimalista e de fácil navegação. Você pode visualizar o protótipo interativo no link abaixo:
 
-**[Link para o protótipo no Figma](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-safepark?node-id=0-1&t=R1Gk4wOfAxghkAmk-1)**
+**[Link para o protótipo no Figma](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1)**
 
 ## **🚀 Sobre o Projeto**
 
