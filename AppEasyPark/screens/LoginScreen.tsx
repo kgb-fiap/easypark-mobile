@@ -135,8 +135,8 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <Image
             source={
               theme === 'light'
-                ? require("../assets/miniLogoGreen.png")
-                : require("../assets/miniLogoWhite.png")
+                ? require("../assets/images/miniLogoGreen.png")
+                : require("../assets/images/miniLogoWhite.png")
             }
             style={styles.miniLogo}
             resizeMode="contain"
