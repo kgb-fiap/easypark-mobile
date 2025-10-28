@@ -68,7 +68,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
             <TouchableOpacity
                 style={styles.searchBar}
-            // onPress={() => navigation.navigate("Search")} 
+                onPress={() => navigation.navigate("Search")}
             >
                 <Ionicons name="search" size={20} color={currentColors.text} />
                 <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>

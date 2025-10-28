@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View, Text, StyleSheet, SafeAreaView, FlatList, TouchableOpacity,
-    ListRenderItemInfo, Modal, TextInput, Alert
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ListRenderItemInfo, Modal, TextInput, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../App';
@@ -99,7 +96,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
 
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -177,7 +174,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Modal>
             
-        </SafeAreaView>
+        </View>
     );
 };
 
