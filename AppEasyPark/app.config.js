@@ -1,4 +1,6 @@
-{
+import 'dotenv/config';
+
+export default {
   "expo": {
     "name": "AppEasyPark",
     "slug": "AppEasyPark",
@@ -13,7 +15,11 @@
       "backgroundColor": "#03BB85"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.appeasypark",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para mostrar os estacionamentos próximos a você."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +27,13 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.appeasypark",
+      "config": {
+        "googleMaps": {
+          "apiKey": process.env.GOOGLE_MAPS_API_KEY 
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,4 +42,4 @@
       "expo-font"
     ]
   }
-}
+};
