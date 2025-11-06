@@ -47,7 +47,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     <Ionicons name="chevron-forward" size={22} color="#888" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.card}>
+                <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("Help")}>
                     <Ionicons name="help-circle-outline" size={24} color="#03BB85" />
                     <Text style={styles.cardText}>Ajuda e suporte</Text>
                     <Ionicons name="chevron-forward" size={22} color="#888" />

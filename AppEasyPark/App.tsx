@@ -12,16 +12,18 @@ import HistoryScreen from "./screens/HistoryScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import PaymentMethodsScreen from "./screens/PaymentMethodsScreen"
 import SearchScreen from "./screens/SearchScreen";
+import HelpScreen from "./screens/HelpScreen";
 
 export type RootStackParamList = {
   Welcome: undefined;
   Login: undefined;
   Register: undefined;
   Home: undefined;
-  Settings: undefined;
-  History: undefined;
-  PaymentMethods : undefined;
   Search : undefined;
+  History: undefined;
+  Settings: undefined;
+  PaymentMethods : undefined;
+  Help: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -36,10 +38,11 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
-          <Stack.Screen name="Search" component={SearchScreen} />
+          <Stack.Screen name="Help" component={HelpScreen} />
         </Stack.Navigator>
       </NavigationContainer>
       <Toast />
