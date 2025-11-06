@@ -1,12 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useState, useEffect, useRef } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import MapView, { Marker, Region, MarkerPressEvent } from 'react-native-maps';
+import * as Location from 'expo-location';
+
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors, ThemeName } from '../src/theme/colors';
+import { lightMapStyle, darkMapStyle } from '../src/theme/mapStyles';
+
+// Função para calcular a distância entre duas coordenadas (Haversine)
+// function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+//     const R = 6371; // Raio da Terra em km
+//     const dLat = deg2rad(lat2 - lat1);
+//     const dLon = deg2rad(lon2 - lon1);
+//     const a =
+//         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+//         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+//         Math.sin(dLon / 2) * Math.sin(dLon / 2);
+//     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+//     const d = R * c; // Distância em km
+//     return d;
+// }
+
+// function deg2rad(deg: number) {
+//     return deg * (Math.PI / 180);
+// }
+
+// --- 2. DADOS DE EXEMPLO (MOCK) DOS ESTACIONAMENTOS ---
+// No futuro, isso virá da sua API/Banco de Dados
+const MOCK_PARKING_SPOTS = [
+    { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
+    { id: '2', title: "Shopping Pátio Paulista", description: "Vagas: 30", coords: { latitude: -23.56275, longitude: -46.64855 } },
+    { id: '3', title: "Estacionamento Augusta", description: "Vagas: 5", coords: { latitude: -23.55145, longitude: -46.65825 } },
+    // Um estacionamento distante (ex: Morumbi) para testar o filtro de 5km
+    { id: '4', title: "Estacionamento Morumbi", description: "Vagas: 50", coords: { latitude: -23.6234, longitude: -46.7388 } },
+];
+type ParkingSpot = typeof MOCK_PARKING_SPOTS[0];
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
 
@@ -21,6 +54,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const styles = getStyles(currentColors, theme);
 
     const [userName, setUserName] = useState<string>('Usuário'); // Nome padrão
+    const [location, setLocation] = useState<Location.LocationObject | null>(null);
+    const [initialRegion, setInitialRegion] = useState<Region | null>(null);
+
+    // Estado para gerenciar os marcadores de estacionamentos
+    const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+
+    const mapRef = useRef<MapView>(null);
 
     useEffect(() => {
         // Função para buscar os dados do usuário:
@@ -44,11 +84,107 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         loadUserName();
     }, []); // O array vazio garante que o efeito execute apenas na montagem do componente e apenas uma única vez
 
+    useEffect(() => {
+        (async () => {
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                console.error('Permissão de localização negada');
+                // Define uma região padrão se a permissão for negada
+                // Região padrão: São Paulo, Av. Paulista
+                setInitialRegion({
+                    latitude: -23.56158,
+                    longitude: -46.65609,
+                    latitudeDelta: 0.0922,
+                    longitudeDelta: 0.0421,
+                });
+                return;
+            }
+
+            let currentLocation = await Location.getCurrentPositionAsync({});
+            setLocation(currentLocation);
+            setInitialRegion({
+                latitude: currentLocation.coords.latitude,
+                longitude: currentLocation.coords.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.01,
+            });
+        })();
+    }, []);
+
+    useEffect(() => {
+        // Simula uma busca na API
+        setParkingSpots(MOCK_PARKING_SPOTS);
+    }, []);
+
+    // // --- 5. Efeito para filtrar o estacionamento ---
+    // useEffect(() => {
+    //     // Só filtra se tivermos a localização do usuário E a lista de estacionamentos
+    //     if (location && allParkingSpots.length > 0) {
+    //         const userLat = location.coords.latitude;
+    //         const userLon = location.coords.longitude;
+    //         const radiusInKm = 5; // Nosso raio de 5km
+
+    //         const nearbySpots = allParkingSpots.filter(spot => {
+    //             const spotLat = spot.coords.latitude;
+    //             const spotLon = spot.coords.longitude;
+
+    //             // Calcula a distância
+    //             const distance = getDistanceInKm(userLat, userLon, spotLat, spotLon);
+
+    //             // Retorna true (inclui no filtro) se a distância for <= 5km
+    //             return distance <= radiusInKm;
+    //         });
+
+    //         setVisibleParkingSpots(nearbySpots);
+    //     }
+    // }, [location, allParkingSpots]);
+
+    const goToMyLocation = () => {
+        if (location) {
+            mapRef.current?.animateToRegion({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.01,
+            }, 1000); // 1000ms = 1 segundo de animação
+        }
+    };
+
+    const handleMarkerPress = (e: MarkerPressEvent) => {
+        // Você pode adicionar lógicas aqui se quiser
+        console.log("onMarkerPress (MapView):", e.nativeEvent.id);
+    };
+
     return (
         <View style={styles.container}>
-            <View style={styles.mapMock}>
-                <Text style={styles.mapMockText}>Mapa (simulação)</Text>
-            </View>
+
+            {initialRegion ? (
+                <MapView
+                    ref={mapRef}
+                    style={StyleSheet.absoluteFillObject}
+                    initialRegion={initialRegion}
+                    showsUserLocation={true}
+                    customMapStyle={theme === 'light' ? lightMapStyle : darkMapStyle}
+                    showsMyLocationButton={false}
+                    showsCompass={false}
+                    toolbarEnabled={false}
+                >
+                    {parkingSpots.map(spot => (
+                        <Marker
+                            key={spot.id}
+                            coordinate={spot.coords}
+                            title={spot.title}
+                            description={spot.description}
+                            image={require('../assets/images/parking-icon.png')}
+                        />
+                    ))}
+                </MapView>
+            ) : (
+                <View style={styles.mapPlaceholder}>
+                    <ActivityIndicator size="large" color={currentColors.primary} />
+                    <Text style={styles.loadingText}>Carregando mapa...</Text>
+                </View>
+            )}
 
             <View style={styles.header}>
                 <View>
@@ -72,6 +208,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             >
                 <Ionicons name="search" size={20} color={currentColors.text} />
                 <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+                style={styles.recenterButton}
+                onPress={goToMyLocation}
+            >
+                <Ionicons name="locate" size={24} color={currentColors.text} />
             </TouchableOpacity>
 
             <View style={styles.navBar}>
@@ -99,17 +242,28 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         flex: 1,
         backgroundColor: currentColors.background,
     },
-    mapMock: {
+    mapPlaceholder: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: theme === 'light' ? "#D9D9D9" : "#212121",
-        justifyContent: "center",
-        alignItems: "center",
+        backgroundColor: theme === 'light' ? '#EFEFEF' : '#242f3e', // Cor de fundo base do mapa
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    mapMockText: {
+    loadingText: {
+        marginTop: 10,
         color: currentColors.muted,
         fontSize: 16,
-        fontStyle: "italic",
     },
+    // mapMock: {
+    //     ...StyleSheet.absoluteFillObject,
+    //     backgroundColor: theme === 'light' ? "#D9D9D9" : "#212121",
+    //     justifyContent: "center",
+    //     alignItems: "center",
+    // },
+    // mapMockText: {
+    //     color: currentColors.muted,
+    //     fontSize: 16,
+    //     fontStyle: "italic",
+    // },
     header: {
         position: "absolute",
         top: 60,
@@ -149,6 +303,19 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         color: currentColors.text,
         fontSize: 16,
         marginLeft: 10,
+    },
+    recenterButton: {
+        position: 'absolute',
+        top: 195,
+        right: 20,
+        backgroundColor: currentColors.card,
+        borderRadius: 50,
+        padding: 12,
+        elevation: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
     },
     navBar: {
         position: "absolute",
