@@ -13,6 +13,8 @@ import SettingsScreen from "./screens/SettingsScreen";
 import PaymentMethodsScreen from "./screens/PaymentMethodsScreen"
 import SearchScreen from "./screens/SearchScreen";
 import HelpScreen from "./screens/HelpScreen";
+import UserPreferencesScreen from "./screens/UserPreferencesScreen";
+import ProfileInfoScreen from "./screens/ProfileInfoScreen";
 
 export type RootStackParamList = {
   Welcome: undefined;
@@ -22,6 +24,8 @@ export type RootStackParamList = {
   Search : undefined;
   History: undefined;
   Settings: undefined;
+  UserPreferences : undefined;
+  ProfileInfo : undefined;
   PaymentMethods : undefined;
   Help: undefined;
 };
@@ -41,7 +45,9 @@ export default function App() {
           <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="History" component={HistoryScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="UserPreferences" component={UserPreferencesScreen} />
           <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+          <Stack.Screen name="ProfileInfo" component={ProfileInfoScreen} />
           <Stack.Screen name="Help" component={HelpScreen} />
         </Stack.Navigator>
       </NavigationContainer>
