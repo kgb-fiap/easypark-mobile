@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
@@ -30,7 +30,7 @@ import { lightMapStyle, darkMapStyle } from '../src/theme/mapStyles';
 //     return deg * (Math.PI / 180);
 // }
 
-// --- 2. DADOS DE EXEMPLO (MOCK) DOS ESTACIONAMENTOS ---
+// DADOS DE EXEMPLO (MOCK) DOS ESTACIONAMENTOS
 // No futuro, isso virá da sua API/Banco de Dados
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
@@ -56,9 +56,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const [userName, setUserName] = useState<string>('Usuário'); // Nome padrão
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [initialRegion, setInitialRegion] = useState<Region | null>(null);
-
-    // Estado para gerenciar os marcadores de estacionamentos
     const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+
+    const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
+    const sheetAnim = useRef(new Animated.Value(300)).current; 
+    const [sheetData, setSheetData] = useState<ParkingSpot | null>(null);
 
     const mapRef = useRef<MapView>(null);
 
@@ -116,7 +118,28 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setParkingSpots(MOCK_PARKING_SPOTS);
     }, []);
 
-    // // --- 5. Efeito para filtrar o estacionamento ---
+    useEffect(() => {
+        if (selectedSpot) {
+            setSheetData(selectedSpot);
+            Animated.timing(sheetAnim, {
+                toValue: 0,
+                duration: 200, // Duração reduzida para 200ms
+                easing: Easing.inOut(Easing.ease), // Curva de animação mais suave
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(sheetAnim, {
+                toValue: 300,
+                duration: 200, // Duração reduzida para 200ms
+                easing: Easing.inOut(Easing.ease), // Curva de animação mais suave
+                useNativeDriver: true,
+            }).start(() => {
+                setSheetData(null);
+            });
+        }
+    }, [selectedSpot]);
+
+    // Efeito para filtrar o estacionamentos próximos (5km)
     // useEffect(() => {
     //     // Só filtra se tivermos a localização do usuário E a lista de estacionamentos
     //     if (location && allParkingSpots.length > 0) {
@@ -151,8 +174,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     };
 
     const handleMarkerPress = (e: MarkerPressEvent) => {
-        // Você pode adicionar lógicas aqui se quiser
-        console.log("onMarkerPress (MapView):", e.nativeEvent.id);
+        const spotId = e.nativeEvent.id; // Pega o ID do marcador
+        const spot = parkingSpots.find(p => p.id === spotId);
+        if (spot) {
+            setSelectedSpot(spot); // Define o estacionamento selecionado
+        }
     };
 
     return (
@@ -168,13 +194,14 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     showsMyLocationButton={false}
                     showsCompass={false}
                     toolbarEnabled={false}
+                    onMarkerPress={handleMarkerPress}
+                    onPress={() => setSelectedSpot(null)}
                 >
                     {parkingSpots.map(spot => (
                         <Marker
                             key={spot.id}
+                            identifier={spot.id}
                             coordinate={spot.coords}
-                            title={spot.title}
-                            description={spot.description}
                             image={require('../assets/images/parking-icon.png')}
                         />
                     ))}
@@ -217,6 +244,21 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="locate" size={24} color={currentColors.text} />
             </TouchableOpacity>
 
+            {sheetData && (
+                <Animated.View 
+                    style={[
+                        styles.bottomSheet, 
+                        { transform: [{ translateY: sheetAnim }] } // Aplica a animação
+                    ]}
+                >
+                    <Text style={styles.sheetTitle}>{sheetData.title}</Text>
+                    <Text style={styles.sheetDescription}>{sheetData.description}</Text>
+                    <TouchableOpacity style={styles.reserveButton}>
+                        <Text style={styles.reserveButtonText}>Reservar Vaga</Text>
+                    </TouchableOpacity>
+                </Animated.View>
+            )}
+
             <View style={styles.navBar}>
                 <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={26} color={currentColors.primary} />
@@ -244,7 +286,7 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
     },
     mapPlaceholder: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: theme === 'light' ? '#EFEFEF' : '#242f3e', // Cor de fundo base do mapa
+        backgroundColor: theme === 'light' ? '#EFEFEF' : '#212121',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -316,6 +358,42 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
+    },
+    bottomSheet: {
+        position: 'absolute',
+        bottom: 140, // Posição logo acima da navBar
+        left: 20,
+        right: 20,
+        backgroundColor: currentColors.card,
+        borderRadius: 16,
+        padding: 20,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.15,
+        shadowOffset: { width: 0, height: -3 },
+        shadowRadius: 10,
+    },
+    sheetTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: currentColors.text,
+    },
+    sheetDescription: {
+        fontSize: 14,
+        color: currentColors.muted,
+        marginTop: 4,
+        marginBottom: 15,
+    },
+    reserveButton: {
+        backgroundColor: currentColors.primary,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    reserveButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
     navBar: {
         position: "absolute",
