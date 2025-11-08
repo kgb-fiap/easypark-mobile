@@ -8,13 +8,13 @@ import WelcomeScreen from "./screens/WelcomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen";
 import HomeScreen from "./screens/HomeScreen";
+import SearchScreen from "./screens/SearchScreen";
 import HistoryScreen from "./screens/HistoryScreen";
 import SettingsScreen from "./screens/SettingsScreen";
-import PaymentMethodsScreen from "./screens/PaymentMethodsScreen"
-import SearchScreen from "./screens/SearchScreen";
-import HelpScreen from "./screens/HelpScreen";
-import UserPreferencesScreen from "./screens/UserPreferencesScreen";
 import ProfileInfoScreen from "./screens/ProfileInfoScreen";
+import PaymentMethodsScreen from "./screens/PaymentMethodsScreen"
+import UserPreferencesScreen from "./screens/UserPreferencesScreen";
+import HelpScreen from "./screens/HelpScreen";
 
 export type RootStackParamList = {
   Welcome: undefined;

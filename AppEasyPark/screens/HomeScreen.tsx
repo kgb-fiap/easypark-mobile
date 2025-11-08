@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing } from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing, Modal, ScrollView} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { StackNavigationProp } from "@react-navigation/stack";
+import { useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../App";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 import MapView, { Marker, Region, MarkerPressEvent } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -41,6 +44,13 @@ const MOCK_PARKING_SPOTS = [
 ];
 type ParkingSpot = typeof MOCK_PARKING_SPOTS[0];
 
+interface PaymentItem {
+    id: string;
+    type: 'credit';
+    brand?: 'Visa' | 'Mastercard';
+    last4?: string;
+}
+
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
 
 interface Props {
@@ -58,22 +68,33 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const [initialRegion, setInitialRegion] = useState<Region | null>(null);
     const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
 
+    // --- Gerenciamento de Estado dos Painéis ---
     const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current; 
     const [sheetData, setSheetData] = useState<ParkingSpot | null>(null);
 
+    const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
+
+    // --- Estado do Formulário de Confirmação ---
+    const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
+    const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null); // Armazena ID do cartão, 'pix', ou 'dinheiro'
+    const [countdown, setCountdown] = useState(30);
+    
+    // --- Refs ---
     const mapRef = useRef<MapView>(null);
+    const timerAnim = useRef(new Animated.Value(100)).current;
+    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         // Função para buscar os dados do usuário:
         const loadUserName = async () => {
             try {
-                // 1. Busca o nome do usuário salvo no armazenamento do dispositivo
+                // Busca o nome do usuário salvo no armazenamento do dispositivo
                 const storedName = await AsyncStorage.getItem('@user_name');
 
-                // 2. Se um nome foi encontrado, atualiza o estado.
+                // Se um nome foi encontrado, atualiza o estado.
                 if (storedName !== null) {
-                    // 2.5 Pega o primeiro nome para a saudação
+                    // Pega o primeiro nome para a saudação
                     const firstName = storedName.split(' ')[0];
                     setUserName(firstName);
                 }
@@ -82,7 +103,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 console.error("Falha ao carregar o nome.", e);
             }
         };
-        // 3. Executa a função de carregamento
+        // Executa a função de carregamento
         loadUserName();
     }, []); // O array vazio garante que o efeito execute apenas na montagem do componente e apenas uma única vez
 
@@ -118,20 +139,22 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         setParkingSpots(MOCK_PARKING_SPOTS);
     }, []);
 
+    // Efeito para mostrar a opção de reservar quando um estacionamento é selecionado
     useEffect(() => {
         if (selectedSpot) {
             setSheetData(selectedSpot);
             Animated.timing(sheetAnim, {
                 toValue: 0,
-                duration: 200, // Duração reduzida para 200ms
-                easing: Easing.inOut(Easing.ease), // Curva de animação mais suave
+                duration: 200,
+                easing: Easing.inOut(Easing.ease),
                 useNativeDriver: true,
             }).start();
         } else {
+            stopTimer(); 
             Animated.timing(sheetAnim, {
                 toValue: 300,
-                duration: 200, // Duração reduzida para 200ms
-                easing: Easing.inOut(Easing.ease), // Curva de animação mais suave
+                duration: 200,
+                easing: Easing.inOut(Easing.ease),
                 useNativeDriver: true,
             }).start(() => {
                 setSheetData(null);
@@ -169,16 +192,100 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 longitude: location.coords.longitude,
                 latitudeDelta: 0.02,
                 longitudeDelta: 0.01,
-            }, 1000); // 1000ms = 1 segundo de animação
+            }, 1000);
         }
     };
 
     const handleMarkerPress = (e: MarkerPressEvent) => {
-        const spotId = e.nativeEvent.id; // Pega o ID do marcador
+        const spotId = e.nativeEvent.id;
         const spot = parkingSpots.find(p => p.id === spotId);
         if (spot) {
-            setSelectedSpot(spot); // Define o estacionamento selecionado
+            setSelectedSpot(spot);
+            setSelectedPaymentId(null); // Reseta o pagamento selecionado
         }
+    };
+
+    const handleReserveClick = () => {
+        // Seleciona o primeiro cartão salvo como padrão, se existir
+        if (savedPayments.length > 0) {
+            setSelectedPaymentId(savedPayments[0].id);
+        } else {
+            setSelectedPaymentId(null); // Nenhum cartão, força o usuário a escolher
+        }
+        setIsConfirmationVisible(true);
+        startTimer();
+    };
+
+    const handleConfirmReservation = () => {
+        // 7. Validação do pagamento selecionado
+        if (!selectedPaymentId) {
+            Toast.show({ type: 'error', text1: 'Pagamento não selecionado', text2: 'Por favor, escolha um método de pagamento.'});
+            return;
+        }
+        stopTimer();
+        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.`});
+        setIsConfirmationVisible(false);
+        setSelectedSpot(null);
+    };
+
+    const handleCancelReservation = () => {
+        stopTimer();
+        Toast.show({ type: 'info', text1: 'Reserva cancelada.' });
+        setIsConfirmationVisible(false); // Fecha o modal (painel de info continua)
+    };
+
+    const stopTimer = () => {
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+            timerIntervalRef.current = null;
+        }
+        timerAnim.stopAnimation(); // Para a animação da barra
+    };
+
+    const handleTimeout = () => {
+        Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
+        setIsConfirmationVisible(false);
+        setSelectedSpot(null); // Fecha o painel
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            const loadPaymentMethods = async () => {
+                try {
+                    const jsonValue = await AsyncStorage.getItem('@payment_methods');
+                    if (jsonValue !== null) {
+                        setSavedPayments(JSON.parse(jsonValue));
+                    }
+                } catch (e) {
+                    console.error("Falha ao carregar métodos.", e);
+                }
+            };
+            loadPaymentMethods();
+        }, [])
+    );
+
+    const startTimer = () => {
+        stopTimer(); 
+        setCountdown(30); 
+        timerAnim.setValue(100); 
+
+        Animated.timing(timerAnim, {
+            toValue: 0,
+            duration: 30000,
+            easing: Easing.linear,
+            useNativeDriver: false,
+        }).start();
+
+        timerIntervalRef.current = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    stopTimer();
+                    handleTimeout(); // Chama o timeout
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
     };
 
     return (
@@ -248,16 +355,103 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Animated.View 
                     style={[
                         styles.bottomSheet, 
-                        { transform: [{ translateY: sheetAnim }] } // Aplica a animação
+                        { transform: [{ translateY: sheetAnim }] }
                     ]}
                 >
                     <Text style={styles.sheetTitle}>{sheetData.title}</Text>
                     <Text style={styles.sheetDescription}>{sheetData.description}</Text>
-                    <TouchableOpacity style={styles.reserveButton}>
+                    <TouchableOpacity style={styles.reserveButton} onPress={handleReserveClick}>
                         <Text style={styles.reserveButtonText}>Reservar Vaga</Text>
                     </TouchableOpacity>
                 </Animated.View>
             )}
+
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={isConfirmationVisible}
+                onRequestClose={handleCancelReservation}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.confirmationPanel}>
+                        <Text style={styles.sheetTitle}>Confirmar Reserva?</Text>
+                        <Text style={styles.sheetDescription}>
+                            {sheetData?.title} 
+                        </Text>
+                        <Text style={styles.sheetSubText}>
+                            Você deve chegar em 15 minutos para garantir sua vaga.
+                        </Text>
+                        
+                        <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
+                        
+                        <ScrollView style={styles.paymentList} nestedScrollEnabled={true}>
+                            {savedPayments.map(card => {
+                                const isSelected = selectedPaymentId === card.id;
+                                return (
+                                    <TouchableOpacity 
+                                        key={card.id}
+                                        style={[styles.pickerButton, isSelected && styles.pickerButtonSelected]}
+                                        onPress={() => setSelectedPaymentId(card.id)}
+                                    >
+                                        <Ionicons name="card" size={18} color={isSelected ? '#fff' : currentColors.primary} />
+                                        <Text style={[styles.pickerButtonText, isSelected && styles.pickerButtonTextSelected]}>{`${card.brand} •••• ${card.last4}`}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                            
+                            <View style={styles.paymentRow}>
+                                <TouchableOpacity 
+                                    style={[ styles.halfPickerButton, selectedPaymentId === 'pix' && styles.pickerButtonSelected ]}
+                                    onPress={() => setSelectedPaymentId('pix')}
+                                >
+                                    <FontAwesome6 name="pix" size={18} color={selectedPaymentId === 'pix' ? '#fff' : currentColors.primary} />
+                                    <Text style={[styles.pickerButtonText, selectedPaymentId === 'pix' && styles.pickerButtonTextSelected]}>Pix</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity 
+                                    style={[ styles.halfPickerButton, selectedPaymentId === 'dinheiro' && styles.pickerButtonSelected ]}
+                                    onPress={() => setSelectedPaymentId('dinheiro')}
+                                >
+                                    <Ionicons name="cash-outline" size={18} color={selectedPaymentId === 'dinheiro' ? '#fff' : currentColors.primary} />
+                                    <Text style={[styles.pickerButtonText, selectedPaymentId === 'dinheiro' && styles.pickerButtonTextSelected]}>Dinheiro</Text>
+                                </TouchableOpacity>
+                            </View>
+                            
+                            <TouchableOpacity 
+                                style={styles.addButton}
+                                onPress={() => {
+                                    setIsConfirmationVisible(false); // Fecha o modal
+                                    navigation.navigate('PaymentMethods'); // Navega
+                                }}
+                            >
+                                <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
+                                <Text style={styles.addButtonText}>Adicionar novo cartão</Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+
+                        <View style={styles.timerContainer}>
+                            <View style={styles.timerBarBackground}>
+                                <Animated.View style={[styles.timerBarForeground, {
+                                    width: timerAnim.interpolate({
+                                        inputRange: [0, 100],
+                                        outputRange: ['0%', '100%']
+                                    })
+                                }]} />
+                            </View>
+                            <Text style={styles.timerText}>Tempo restante: {countdown}s</Text>
+                        </View>
+
+                        <View style={styles.actionRow}>
+                            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelReservation}>
+                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmReservation}>
+                                <Text style={styles.confirmButtonText}>Confirmar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <View style={styles.navBar}>
                 <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
@@ -295,17 +489,6 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         color: currentColors.muted,
         fontSize: 16,
     },
-    // mapMock: {
-    //     ...StyleSheet.absoluteFillObject,
-    //     backgroundColor: theme === 'light' ? "#D9D9D9" : "#212121",
-    //     justifyContent: "center",
-    //     alignItems: "center",
-    // },
-    // mapMockText: {
-    //     color: currentColors.muted,
-    //     fontSize: 16,
-    //     fontStyle: "italic",
-    // },
     header: {
         position: "absolute",
         top: 60,
@@ -333,7 +516,7 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         top: 130,
         left: 20,
         right: 20,
-        backgroundColor: "#A9A9A9",
+        backgroundColor: currentColors.card,
         borderRadius: 30,
         paddingVertical: 15,
         paddingHorizontal: 20,
@@ -354,14 +537,10 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         borderRadius: 50,
         padding: 12,
         elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
     },
     bottomSheet: {
         position: 'absolute',
-        bottom: 140, // Posição logo acima da navBar
+        bottom: 140, 
         left: 20,
         right: 20,
         backgroundColor: currentColors.card,
@@ -377,12 +556,20 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         fontSize: 18,
         fontWeight: 'bold',
         color: currentColors.text,
+        textAlign: 'center',
     },
     sheetDescription: {
         fontSize: 14,
         color: currentColors.muted,
         marginTop: 4,
         marginBottom: 15,
+        textAlign: 'center',
+    },
+    sheetSubText: {
+        fontSize: 14,
+        color: currentColors.text,
+        textAlign: 'center',
+        marginBottom: 5,
     },
     reserveButton: {
         backgroundColor: currentColors.primary,
@@ -394,6 +581,145 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: 'flex-end', 
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    },
+    confirmationPanel: {
+        height: '70%',
+        width: '100%',
+        backgroundColor: currentColors.card,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 25,
+        alignItems: 'center',
+    },
+    pickerLabel: {
+        fontSize: 14,
+        color: currentColors.muted,
+        marginTop: 15,
+        marginBottom: 10,
+        width: '100%',
+    },
+    pickerContainer: {
+        flexDirection: 'row',
+        width: '100%',
+        marginBottom: 10,
+    },
+    pickerButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: currentColors.border,
+        borderRadius: 8,
+        marginHorizontal: 4,
+    },
+    pickerButtonSelected: {
+        backgroundColor: currentColors.primary,
+        borderColor: currentColors.primary,
+    },
+    pickerButtonText: {
+        color: currentColors.text,
+        fontSize: 14,
+        fontWeight: '500',
+        marginLeft: 8,
+    },
+    pickerButtonTextSelected: {
+        color: '#fff',
+    },
+    paymentRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10,
+        marginHorizontal: -4,
+    },
+    halfPickerButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 10,
+        borderWidth: 1,
+        borderColor: currentColors.border,
+        borderRadius: 8,
+        marginHorizontal: 4,
+    },
+    timerContainer: {
+        width: '100%',
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    timerBarBackground: {
+        height: 8,
+        width: '100%',
+        backgroundColor: currentColors.border,
+        borderRadius: 4,
+        overflow: 'hidden',
+    },
+    timerBarForeground: {
+        height: '100%',
+        backgroundColor: currentColors.primary,
+        borderRadius: 4,
+    },
+    timerText: {
+        fontSize: 14,
+        color: currentColors.muted,
+        marginTop: 5,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginTop: 25,
+    },
+    cancelButton: {
+        paddingVertical: 14,
+        paddingHorizontal: 30,
+        borderRadius: 10,
+    },
+    cancelButtonText: {
+        color: currentColors.muted,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    confirmButton: {
+        backgroundColor: currentColors.primary,
+        paddingVertical: 14,
+        paddingHorizontal: 40,
+        borderRadius: 10,
+    },
+    confirmButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    paymentList: {
+        width: '100%',
+        maxHeight: 150,
+        marginBottom: 25,
+    },
+    addButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 10,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: currentColors.primary,
+        borderStyle: 'dashed',
+        borderRadius: 12,
+    },
+    addButtonText: {
+        color: currentColors.primary,
+        fontSize: 14,
+        marginLeft: 10,
+        fontWeight: '500',
     },
     navBar: {
         position: "absolute",
@@ -409,10 +735,6 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
         borderWidth: 1,
         borderColor: currentColors.border,
         elevation: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 5,
     },
     bottomNav: {
         flex: 1,
