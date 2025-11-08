@@ -10,7 +10,7 @@ O design do aplicativo foi criado no Figma, focando em uma interface minimalista
 
 **[Link para o protótipo no Figma](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1)**
 
-**[Link para o fluxo de navegação](https://youtube.com/shorts/Eyyer4U6Cto?feature=share)**
+**[Link para o fluxo de navegação de telas](https://youtube.com/shorts/Eyyer4U6Cto?feature=share)**
 
 ## **🚀 Sobre o Projeto**
 
