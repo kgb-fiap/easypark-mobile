@@ -272,7 +272,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             // Remove o ouvinte quando a tela perde o foco
             return () => subscription.remove();
         }, [])
-    );
+    ); 
 
     return (
         <View style={styles.container}>
