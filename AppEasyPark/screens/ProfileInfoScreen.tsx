@@ -16,15 +16,16 @@ interface Props {
 }
 
 const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
+
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
-    // Estados para os dados do formulário
+    // --- Estados do Formulário ---
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
 
-    // Estados para guardar os valores originais e controlar o botão "Salvar"
+    // --- Estados para guardar os valores originais e controlar o botão "Salvar" ---
     const [originalName, setOriginalName] = useState('');
     const [originalEmail, setOriginalEmail] = useState('');
 
@@ -49,8 +50,10 @@ const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
         loadUserData();
     }, []);
 
-    // Função para salvar as alterações
+    // Salvar as alterações
     const handleSave = async () => {
+
+        // Validação para campos vazios
         if (!name.trim() || !email.trim()) {
             Toast.show({ type: 'error', text1: 'Campos vazios', text2: 'Nome e e-mail não podem ficar em branco.' });
             return;

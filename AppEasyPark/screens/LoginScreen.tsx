@@ -17,14 +17,17 @@ interface Props {
 }
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const { theme } = useTheme();
   const currentColors = colors[theme];
   const styles = getStyles(currentColors);
 
+  // --- Estados do Formulário ---
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  // --- Handle para o login do usuário ---
   const handleLogin = async () => {
     // 1. Valida se os campos não estão vazios
     if (!email.trim() || !senha) {
@@ -46,6 +49,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
       // 4. Compara o e-mail e a senha digitados com os dados salvos
       if (email.toLowerCase() === savedUser.email.toLowerCase() && senha === savedUser.password) {
+
         // Se o login for bem-sucedido: salva o nome do usuário novamente para garantir que a Home o exiba
         await AsyncStorage.setItem('@user_name', savedUser.name);
 
@@ -62,10 +66,11 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       Toast.show({ type: 'error', text1: 'Erro', text2: 'Ocorreu um problema ao tentar fazer login.' });
     }
   };
-
+  
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
+
         <KeyboardAwareScrollView
           contentContainerStyle={styles.scrollContent}
           enableOnAndroid
@@ -84,6 +89,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.headerTitle}>Login</Text>
           </View>
 
+          {/* --- Formulário --- */}
           <View style={styles.form}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -142,6 +148,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             resizeMode="contain"
           />
         </View>
+
       </View>
     </TouchableWithoutFeedback>
   );

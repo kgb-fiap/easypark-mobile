@@ -8,7 +8,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
 
-
 interface PaymentItem {
     id: string;
     type: 'credit';
@@ -22,18 +21,24 @@ interface Props {
     navigation: PaymentMethodsScreenNavigationProp;
 }
 
+// Chave única para o AsyncStorage
 const STORAGE_KEY = '@payment_methods';
 
 const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
+
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
+    // --- Estados ---
     const [methods, setMethods] = useState<PaymentItem[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
+
+    // --- Estados do formulário do modal ---
     const [cardLast4, setCardLast4] = useState('');
     const [cardBrand, setCardBrand] = useState<'Visa' | 'Mastercard'>('Visa');
 
+    // Efeito para CARREGAR os métodos salvos (roda ao abrir a tela)
     useEffect(() => {
         const loadMethods = async () => {
             try {
@@ -48,6 +53,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
         loadMethods();
     }, []);
 
+    // Efeito para SALVAR os métodos (roda toda vez que a lista 'methods' é alterada)
     useEffect(() => {
         const saveMethods = async () => {
             try {
@@ -60,6 +66,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
         saveMethods();
     }, [methods]);
 
+    // Adiciona um novo cartão à lista 'methods' após validação
     const handleAddMethod = () => {
         if (cardLast4.length !== 4) {
             Alert.alert("Erro", "Por favor, insira os 4 últimos dígitos do cartão.");
@@ -78,10 +85,12 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
         setCardLast4('');
     };
 
+    // Remove um método de pagamento da lista 'methods' com base no ID
     const handleDeleteMethod = (id: string) => {
         setMethods(prevMethods => prevMethods.filter(method => method.id !== id));
     };
 
+    // Renderiza um único item da lista de cartões
     const renderPaymentItem = ({ item }: ListRenderItemInfo<PaymentItem>) => (
         <View style={styles.paymentMethodCard}>
             <Ionicons name="card" size={24} color={currentColors.primary} />
@@ -128,6 +137,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
                 }
             />
 
+            {/* Modal para Adicionar Cartão */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -173,7 +183,7 @@ const PaymentMethodsScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                 </View>
             </Modal>
-            
+
         </View>
     );
 };

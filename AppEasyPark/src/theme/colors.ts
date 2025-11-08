@@ -1,3 +1,4 @@
+// Interface de definição das cores do tema
 export interface ThemeColors {
   background: string;
   text: string;
@@ -7,8 +8,10 @@ export interface ThemeColors {
   border: string;
 }
 
+// Tipo para os nomes dos temas disponíveis
 export type ThemeName = 'light' | 'dark';
 
+// Definição das cores para cada tema
 export const colors = {
   light: {
     background: '#FFFFFF',

@@ -27,6 +27,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ width: 24 }} />
             </View>
 
+            {/* --- Cards --- */}
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("ProfileInfo")}>
                     <Ionicons name="person-outline" size={24} color="#03BB85" />
@@ -54,6 +55,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                 </TouchableOpacity>
             </ScrollView>
 
+            {/* --- Barra de Navegação Inferior --- */}
             <View style={styles.navBar}>
                 <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={26} color={currentColors.muted} />

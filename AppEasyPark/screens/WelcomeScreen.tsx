@@ -20,6 +20,8 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+
+      {/* --- Logo (Apresentação inicial) --- */}
       <Image
         source={require("../assets/images/logo.png")}
         style={styles.logo}
@@ -31,6 +33,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.titleAccent}>P</Text>ARK
       </Text>
 
+      {/* --- Navegação inicial --- */}
       <TouchableOpacity
         style={styles.greenButton}
         onPress={() => navigation.navigate('Login')}
@@ -46,6 +49,7 @@ const WelcomeScreen: React.FC<Props> = ({ navigation }) => {
       </TouchableOpacity>
 
       <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+
     </View>
   );
 };

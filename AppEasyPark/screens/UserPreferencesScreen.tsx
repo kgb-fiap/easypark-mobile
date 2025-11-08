@@ -19,6 +19,7 @@ const UserPreferencesScreen: React.FC<Props> = ({ navigation }) => {
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
+    // 
     const isDarkMode = theme === 'dark';
 
     return (
@@ -36,6 +37,7 @@ const UserPreferencesScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ width: 24 }} />
             </View>
 
+            {/* --- Cards --- */}
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <View style={styles.card}>
                     <Ionicons

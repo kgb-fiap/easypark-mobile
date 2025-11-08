@@ -1,3 +1,4 @@
+// Estilo do mapa claro
 export const lightMapStyle = [
     {
         "featureType": "all",
@@ -277,6 +278,7 @@ export const lightMapStyle = [
     }
 ];
 
+// Estilo do mapa escuro
 export const darkMapStyle = [
     {
         "featureType": "all",

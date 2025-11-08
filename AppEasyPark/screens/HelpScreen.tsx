@@ -23,10 +23,11 @@ const HelpScreen: React.FC<Props> = ({ navigation }) => {
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
+    // --- Abre um link externo no navegador padrão do dispositivo ---
     const handleLinkPress = (url: string) => {
         Linking.openURL(url).catch(err => console.error("Não foi possível carregar a página", err));
     };
-
+    
     return (
         <View style={styles.container}>
 
@@ -42,6 +43,7 @@ const HelpScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ width: 24 }} />
             </View>
 
+            {/* --- Cards --- */}
             <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.sectionTitle}>Recursos do Projeto</Text>
 
@@ -66,7 +68,7 @@ const HelpScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.divider} />
 
                 <Text style={styles.sectionTitle}>Suporte</Text>
-                
+
                 <TouchableOpacity style={styles.card} onPress={() => { /* Futura tela de FAQ */ }}>
                     <Ionicons name="help-circle-outline" size={24} color={currentColors.primary} />
                     <View style={styles.cardTextContainer}>

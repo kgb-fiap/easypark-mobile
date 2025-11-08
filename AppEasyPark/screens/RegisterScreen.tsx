@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, TouchableWithoutFeedback, Keyboard} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, TouchableWithoutFeedback, Keyboard } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +20,12 @@ interface Props {
 }
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
+
+  const { theme } = useTheme();
+  const currentColors = colors[theme];
+  const styles = getStyles(currentColors);
+
+  // --- Estados do Formulário ---
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -27,10 +33,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [confSenha, setConfSenha] = useState("");
   const [mostrarConfSenha, setMostrarConfSenha] = useState(false);
 
-  const { theme } = useTheme();
-  const currentColors = colors[theme];
-  const styles = getStyles(currentColors);
-
+  // Função para realizar o cadastro
   const handleRegister = async () => {
     // 1. Valida se os campos não estão vazios
     if (!nome.trim() || !email.trim() || !senha || !confSenha) {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ListRenderItemInfo } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from "../App";
@@ -7,6 +7,17 @@ import { RootStackParamList } from "../App";
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+
+interface PaymentItemMock {
+    type: 'credit' | 'pix' | 'money';
+    last4?: string;
+}
+interface HistoryItem {
+    id: string;
+    date: string;
+    value: string;
+    payment: PaymentItemMock;
+}
 
 type HistoryScreenNavigationProp = StackNavigationProp<RootStackParamList, "History">;
 
@@ -17,9 +28,9 @@ interface Props {
 const historyData: HistoryItem[] = [
     { id: '1', date: '10 out, 2025, 19:30', value: 'R$9,50', payment: { type: 'credit', last4: '4321' } },
     { id: '2', date: '28 set, 2025, 12:15', value: 'R$15,00', payment: { type: 'pix' } },
-    { id: '3', date: '15 set, 2025, 08:00', value: 'R$6,00', payment: { type: 'credit', last4: '8879' } },
+    { id: '3', date: '15 set, 2025, 08:00', value: 'R$6,00', payment: { type: 'money' } },
     { id: '4', date: '02 ago, 2025, 17:45', value: 'R$11,00', payment: { type: 'pix' } },
-    { id: '5', date: '20 jul, 2025, 14:20', value: 'R$8,50', payment: { type: 'credit', last4: '4321' } },
+    { id: '5', date: '20 jul, 2025, 14:20', value: 'R$8,50', payment: { type: 'money' } },
     { id: '6', date: '11 jun, 2025, 11:00', value: 'R$22,00', payment: { type: 'credit', last4: '8879' } },
     { id: '7', date: '05 mai, 2025, 20:10', value: 'R$7,50', payment: { type: 'pix' } },
     { id: '8', date: '14 fev, 2025, 14:40', value: 'R$8,00', payment: { type: 'credit', last4: '4321' } },
@@ -28,12 +39,15 @@ const historyData: HistoryItem[] = [
 ];
 
 const HistoryScreen: React.FC<Props> = ({ navigation }) => {
+
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
-    const renderHistoryItem = ({ item }) => {
+    // --- Componente interno para renderizar um único item da lista de histórico ---
+    const renderHistoryItem = ({ item }: ListRenderItemInfo<HistoryItem>) => {
 
+        // --- Componente menor para exibir a informação de pagamento (Cartão, Pix ou Dinheiro) ---
         const PaymentInfo = () => {
             if (item.payment.type === 'credit') {
                 return (
@@ -51,6 +65,14 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
                     </View>
                 );
             }
+            if (item.payment.type === 'money') {
+                return (
+                    <View style={styles.paymentContainer}>
+                        <Ionicons name="cash-outline" size={16} color={currentColors.muted} />
+                        <Text style={styles.paymentText}>Dinheiro</Text>
+                    </View>
+                );
+            }
             return null;
         };
 
@@ -65,7 +87,7 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
             </View>
         );
     };
-
+    
     return (
         <View style={styles.container}>
 
@@ -74,6 +96,7 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={{ width: 24 }} />
             </View>
 
+            {/* --- Lista de Histórico de Reservas --- */}
             <FlatList
                 data={historyData}
                 renderItem={renderHistoryItem}
@@ -81,6 +104,7 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
                 contentContainerStyle={styles.listContainer}
             />
 
+            {/* --- Barra de Navegação Inferior --- */}
             <View style={styles.navBar}>
                 <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={26} color={currentColors.muted} />

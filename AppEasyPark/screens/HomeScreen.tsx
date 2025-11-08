@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Easing, Modal, ScrollView} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import {
+    View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
+    Animated, Easing, Modal, ScrollView
+} from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useFocusEffect } from "@react-navigation/native";
 import { RootStackParamList } from "../App";
+import { Ionicons } from "@expo/vector-icons";
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-
 import MapView, { Marker, Region, MarkerPressEvent } from 'react-native-maps';
 import * as Location from 'expo-location';
 
@@ -15,26 +17,6 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors, ThemeName } from '../src/theme/colors';
 import { lightMapStyle, darkMapStyle } from '../src/theme/mapStyles';
 
-// Função para calcular a distância entre duas coordenadas (Haversine)
-// function getDistanceInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-//     const R = 6371; // Raio da Terra em km
-//     const dLat = deg2rad(lat2 - lat1);
-//     const dLon = deg2rad(lon2 - lon1);
-//     const a =
-//         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-//         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-//         Math.sin(dLon / 2) * Math.sin(dLon / 2);
-//     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-//     const d = R * c; // Distância em km
-//     return d;
-// }
-
-// function deg2rad(deg: number) {
-//     return deg * (Math.PI / 180);
-// }
-
-// DADOS DE EXEMPLO (MOCK) DOS ESTACIONAMENTOS
-// No futuro, isso virá da sua API/Banco de Dados
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
     { id: '2', title: "Shopping Pátio Paulista", description: "Vagas: 30", coords: { latitude: -23.56275, longitude: -46.64855 } },
@@ -63,28 +45,121 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
 
-    const [userName, setUserName] = useState<string>('Usuário'); // Nome padrão
+    // --- Estados da UI e Dados ---
+    const [userName, setUserName] = useState<string>('Usuário');
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [initialRegion, setInitialRegion] = useState<Region | null>(null);
     const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
 
-    // --- Gerenciamento de Estado dos Painéis ---
+    // --- Estados dos Painéis e Modal ---
     const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
-    const sheetAnim = useRef(new Animated.Value(300)).current; 
     const [sheetData, setSheetData] = useState<ParkingSpot | null>(null);
-
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
 
-    // --- Estado do Formulário de Confirmação ---
+    // --- Estados do Modal de Confirmação ---
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
-    const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null); // Armazena ID do cartão, 'pix', ou 'dinheiro'
+    const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
     const [countdown, setCountdown] = useState(30);
-    
+
     // --- Refs ---
     const mapRef = useRef<MapView>(null);
+    const sheetAnim = useRef(new Animated.Value(300)).current;
     const timerAnim = useRef(new Animated.Value(100)).current;
     const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    // --- Lógica do Timer de Confirmação ---
+    const stopTimer = () => {
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+            timerIntervalRef.current = null;
+        }
+        timerAnim.stopAnimation(); // Para a animação da barra
+    };
+
+    const handleTimeout = () => {
+        Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
+        setIsConfirmationVisible(false);
+        setSelectedSpot(null); // Fecha ambos os painéis
+    };
+
+    const startTimer = () => {
+        stopTimer();
+        setCountdown(30);
+        timerAnim.setValue(100); // Reseta a barra para 100%
+
+        // Anima a barra de 100% para 0% em 30 segundos
+        Animated.timing(timerAnim, {
+            toValue: 0,
+            duration: 30000,
+            easing: Easing.linear,
+            useNativeDriver: false, // 'width' não é suportado pelo driver nativo
+        }).start();
+
+        // Inicia o contador de texto
+        timerIntervalRef.current = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    stopTimer();
+                    handleTimeout();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    // --- Handlers de Ação do Mapa ---
+    const goToMyLocation = () => {
+        if (location) {
+            mapRef.current?.animateToRegion({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.01,
+            }, 1000);
+        }
+    };
+
+    const handleMarkerPress = (e: MarkerPressEvent) => {
+        const spotId = e.nativeEvent.id;
+        const spot = parkingSpots.find(p => p.id === spotId);
+        if (spot) {
+            setSelectedSpot(spot);
+            setSelectedPaymentId(null); // Reseta o pagamento selecionado
+        }
+    };
+
+    // --- Handlers de Ação dos Painéis (Reserva) ---
+    const handleReserveClick = () => {
+        // Pré-seleciona o primeiro cartão, se existir
+        if (savedPayments.length > 0) {
+            setSelectedPaymentId(savedPayments[0].id);
+        } else {
+            setSelectedPaymentId(null); // Se não houver nenhum cartão, força o usuário a escolher
+        }
+        setIsConfirmationVisible(true);
+        startTimer();
+    };
+
+    const handleConfirmReservation = () => { // Handle de confirmação da reserva
+        // Validação do pagamento selecionado
+        if (!selectedPaymentId) {
+            Toast.show({ type: 'error', text1: 'Pagamento não selecionado', text2: 'Por favor, escolha um método de pagamento.' });
+            return;
+        }
+        stopTimer();
+        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
+        setIsConfirmationVisible(false);
+        setSelectedSpot(null);
+    };
+
+    const handleCancelReservation = () => { // Handle de cancelamento da reserva
+        stopTimer();
+        Toast.show({ type: 'info', text1: 'Reserva cancelada.' });
+        setIsConfirmationVisible(false); // Fecha o modal (painel de info continua)
+    };
+
+    // Carrega o nome do usuário (ao iniciar)
     useEffect(() => {
         // Função para buscar os dados do usuário:
         const loadUserName = async () => {
@@ -107,6 +182,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         loadUserName();
     }, []); // O array vazio garante que o efeito execute apenas na montagem do componente e apenas uma única vez
 
+    // Pede permissão e carrega a localização (ao iniciar)
     useEffect(() => {
         (async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
@@ -134,120 +210,13 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         })();
     }, []);
 
+    // Carrega os estacionamentos (ao iniciar)
     useEffect(() => {
         // Simula uma busca na API
         setParkingSpots(MOCK_PARKING_SPOTS);
     }, []);
 
-    // Efeito para mostrar a opção de reservar quando um estacionamento é selecionado
-    useEffect(() => {
-        if (selectedSpot) {
-            setSheetData(selectedSpot);
-            Animated.timing(sheetAnim, {
-                toValue: 0,
-                duration: 200,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }).start();
-        } else {
-            stopTimer(); 
-            Animated.timing(sheetAnim, {
-                toValue: 300,
-                duration: 200,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }).start(() => {
-                setSheetData(null);
-            });
-        }
-    }, [selectedSpot]);
-
-    // Efeito para filtrar o estacionamentos próximos (5km)
-    // useEffect(() => {
-    //     // Só filtra se tivermos a localização do usuário E a lista de estacionamentos
-    //     if (location && allParkingSpots.length > 0) {
-    //         const userLat = location.coords.latitude;
-    //         const userLon = location.coords.longitude;
-    //         const radiusInKm = 5; // Nosso raio de 5km
-
-    //         const nearbySpots = allParkingSpots.filter(spot => {
-    //             const spotLat = spot.coords.latitude;
-    //             const spotLon = spot.coords.longitude;
-
-    //             // Calcula a distância
-    //             const distance = getDistanceInKm(userLat, userLon, spotLat, spotLon);
-
-    //             // Retorna true (inclui no filtro) se a distância for <= 5km
-    //             return distance <= radiusInKm;
-    //         });
-
-    //         setVisibleParkingSpots(nearbySpots);
-    //     }
-    // }, [location, allParkingSpots]);
-
-    const goToMyLocation = () => {
-        if (location) {
-            mapRef.current?.animateToRegion({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-                latitudeDelta: 0.02,
-                longitudeDelta: 0.01,
-            }, 1000);
-        }
-    };
-
-    const handleMarkerPress = (e: MarkerPressEvent) => {
-        const spotId = e.nativeEvent.id;
-        const spot = parkingSpots.find(p => p.id === spotId);
-        if (spot) {
-            setSelectedSpot(spot);
-            setSelectedPaymentId(null); // Reseta o pagamento selecionado
-        }
-    };
-
-    const handleReserveClick = () => {
-        // Seleciona o primeiro cartão salvo como padrão, se existir
-        if (savedPayments.length > 0) {
-            setSelectedPaymentId(savedPayments[0].id);
-        } else {
-            setSelectedPaymentId(null); // Nenhum cartão, força o usuário a escolher
-        }
-        setIsConfirmationVisible(true);
-        startTimer();
-    };
-
-    const handleConfirmReservation = () => {
-        // 7. Validação do pagamento selecionado
-        if (!selectedPaymentId) {
-            Toast.show({ type: 'error', text1: 'Pagamento não selecionado', text2: 'Por favor, escolha um método de pagamento.'});
-            return;
-        }
-        stopTimer();
-        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.`});
-        setIsConfirmationVisible(false);
-        setSelectedSpot(null);
-    };
-
-    const handleCancelReservation = () => {
-        stopTimer();
-        Toast.show({ type: 'info', text1: 'Reserva cancelada.' });
-        setIsConfirmationVisible(false); // Fecha o modal (painel de info continua)
-    };
-
-    const stopTimer = () => {
-        if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current);
-            timerIntervalRef.current = null;
-        }
-        timerAnim.stopAnimation(); // Para a animação da barra
-    };
-
-    const handleTimeout = () => {
-        Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
-        setIsConfirmationVisible(false);
-        setSelectedSpot(null); // Fecha o painel
-    };
-
+    // Efeito para Animação do Painel de Info (observa 'selectedSpot')
     useFocusEffect(
         useCallback(() => {
             const loadPaymentMethods = async () => {
@@ -264,33 +233,33 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }, [])
     );
 
-    const startTimer = () => {
-        stopTimer(); 
-        setCountdown(30); 
-        timerAnim.setValue(100); 
-
-        Animated.timing(timerAnim, {
-            toValue: 0,
-            duration: 30000,
-            easing: Easing.linear,
-            useNativeDriver: false,
-        }).start();
-
-        timerIntervalRef.current = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    stopTimer();
-                    handleTimeout(); // Chama o timeout
-                    return 0;
-                }
-                return prev - 1;
+    // Efeito para mostrar a opção de reservar quando um estacionamento é selecionado
+    useEffect(() => {
+        if (selectedSpot) {
+            setSheetData(selectedSpot);
+            Animated.timing(sheetAnim, {
+                toValue: 0,
+                duration: 200,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+            }).start();
+        } else {
+            stopTimer();
+            Animated.timing(sheetAnim, {
+                toValue: 300,
+                duration: 200,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+            }).start(() => {
+                setSheetData(null);
             });
-        }, 1000);
-    };
-
+        }
+    }, [selectedSpot]);
+    
     return (
         <View style={styles.container}>
 
+            {/* Tela de Loading enquanto o mapa carrega a região */}
             {initialRegion ? (
                 <MapView
                     ref={mapRef}
@@ -302,7 +271,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     showsCompass={false}
                     toolbarEnabled={false}
                     onMarkerPress={handleMarkerPress}
-                    onPress={() => setSelectedSpot(null)}
+                    onPress={() => setSelectedSpot(null)} // Limpa seleção ao clicar no mapa
                 >
                     {parkingSpots.map(spot => (
                         <Marker
@@ -351,10 +320,11 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 <Ionicons name="locate" size={24} color={currentColors.text} />
             </TouchableOpacity>
 
+            {/* --- Painel de Informações --- */}
             {sheetData && (
-                <Animated.View 
+                <Animated.View
                     style={[
-                        styles.bottomSheet, 
+                        styles.bottomSheet,
                         { transform: [{ translateY: sheetAnim }] }
                     ]}
                 >
@@ -366,6 +336,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 </Animated.View>
             )}
 
+            {/* --- Modal de Confirmação --- */}
             <Modal
                 animationType="slide"
                 transparent={true}
@@ -376,19 +347,19 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                     <View style={styles.confirmationPanel}>
                         <Text style={styles.sheetTitle}>Confirmar Reserva?</Text>
                         <Text style={styles.sheetDescription}>
-                            {sheetData?.title} 
+                            {sheetData?.title}
                         </Text>
                         <Text style={styles.sheetSubText}>
                             Você deve chegar em 15 minutos para garantir sua vaga.
                         </Text>
-                        
+
                         <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
-                        
+
                         <ScrollView style={styles.paymentList} nestedScrollEnabled={true}>
                             {savedPayments.map(card => {
                                 const isSelected = selectedPaymentId === card.id;
                                 return (
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         key={card.id}
                                         style={[styles.pickerButton, isSelected && styles.pickerButtonSelected]}
                                         onPress={() => setSelectedPaymentId(card.id)}
@@ -398,30 +369,30 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                                     </TouchableOpacity>
                                 );
                             })}
-                            
+
                             <View style={styles.paymentRow}>
-                                <TouchableOpacity 
-                                    style={[ styles.halfPickerButton, selectedPaymentId === 'pix' && styles.pickerButtonSelected ]}
+                                <TouchableOpacity
+                                    style={[styles.halfPickerButton, selectedPaymentId === 'pix' && styles.pickerButtonSelected]}
                                     onPress={() => setSelectedPaymentId('pix')}
                                 >
                                     <FontAwesome6 name="pix" size={18} color={selectedPaymentId === 'pix' ? '#fff' : currentColors.primary} />
                                     <Text style={[styles.pickerButtonText, selectedPaymentId === 'pix' && styles.pickerButtonTextSelected]}>Pix</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity 
-                                    style={[ styles.halfPickerButton, selectedPaymentId === 'dinheiro' && styles.pickerButtonSelected ]}
+                                <TouchableOpacity
+                                    style={[styles.halfPickerButton, selectedPaymentId === 'dinheiro' && styles.pickerButtonSelected]}
                                     onPress={() => setSelectedPaymentId('dinheiro')}
                                 >
                                     <Ionicons name="cash-outline" size={18} color={selectedPaymentId === 'dinheiro' ? '#fff' : currentColors.primary} />
                                     <Text style={[styles.pickerButtonText, selectedPaymentId === 'dinheiro' && styles.pickerButtonTextSelected]}>Dinheiro</Text>
                                 </TouchableOpacity>
                             </View>
-                            
-                            <TouchableOpacity 
+
+                            <TouchableOpacity
                                 style={styles.addButton}
                                 onPress={() => {
                                     setIsConfirmationVisible(false); // Fecha o modal
-                                    navigation.navigate('PaymentMethods'); // Navega
+                                    navigation.navigate('PaymentMethods'); // Navega para métodos de pagamento
                                 }}
                             >
                                 <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
@@ -453,6 +424,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 </View>
             </Modal>
 
+            {/* --- Barra de Navegação Inferior --- */}
             <View style={styles.navBar}>
                 <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
                     <Ionicons name="home" size={26} color={currentColors.primary} />
@@ -540,7 +512,7 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
     },
     bottomSheet: {
         position: 'absolute',
-        bottom: 140, 
+        bottom: 140,
         left: 20,
         right: 20,
         backgroundColor: currentColors.card,
@@ -584,7 +556,7 @@ const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.c
     },
     modalOverlay: {
         flex: 1,
-        justifyContent: 'flex-end', 
+        justifyContent: 'flex-end',
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     confirmationPanel: {
