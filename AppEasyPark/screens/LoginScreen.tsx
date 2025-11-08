@@ -16,6 +16,12 @@ interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
+const MOCK_USER = {
+  name: "Usuário Teste",
+  email: "teste@teste.com",
+  password: "123",
+};
+
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
   const { theme } = useTheme();
@@ -36,28 +42,27 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     try {
-      // 2. Tenta buscar os dados do usuário salvos no AsyncStorage
       const savedUserJson = await AsyncStorage.getItem('@user_credentials');
 
-      // 3. Verifica se existe algum usuário cadastrado
-      if (savedUserJson === null) {
-        Toast.show({ type: 'error', text1: 'Erro de Login', text2: 'Nenhum usuário cadastrado.' });
-        return;
+      // Decide quais credenciais usar: as salvas ou o mock
+      let userToCompare;
+      if (savedUserJson) {
+        userToCompare = JSON.parse(savedUserJson);
+      } else {
+        userToCompare = MOCK_USER; // Fallback para o mock
       }
 
-      const savedUser = JSON.parse(savedUserJson);
+      // 2. Compara o e-mail e a senha digitados com os dados do usuário
+      if (email.toLowerCase() === userToCompare.email.toLowerCase() && senha === userToCompare.password) {
 
-      // 4. Compara o e-mail e a senha digitados com os dados salvos
-      if (email.toLowerCase() === savedUser.email.toLowerCase() && senha === savedUser.password) {
+        // Sucesso: Salva o nome para a HomeScreen
+        await AsyncStorage.setItem('@user_name', userToCompare.name);
 
-        // Se o login for bem-sucedido: salva o nome do usuário novamente para garantir que a Home o exiba
-        await AsyncStorage.setItem('@user_name', savedUser.name);
-
-        Toast.show({ type: 'success', text1: `Bem-vindo de volta, ${savedUser.name.split(' ')[0]}!` });
+        Toast.show({ type: 'success', text1: `Bem-vindo de volta, ${userToCompare.name.split(' ')[0]}!` });
         setTimeout(() => navigation.navigate("Home"), 1500);
 
       } else {
-        // Se não: credenciais incorretas
+        // Erro: Credenciais incorretas
         Toast.show({ type: 'error', text1: 'Erro de Login', text2: 'E-mail ou senha incorretos.' });
       }
 
@@ -66,7 +71,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       Toast.show({ type: 'error', text1: 'Erro', text2: 'Ocorreu um problema ao tentar fazer login.' });
     }
   };
-  
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>

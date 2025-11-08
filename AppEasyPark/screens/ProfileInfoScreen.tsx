@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,6 +86,38 @@ const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
         }
     };
 
+    // Limpa COMPLETAMENTE o AsyncStorage (para testes)
+    const handleAppReset = () => {
+        Alert.alert(
+            "Resetar Aplicativo?",
+            "Isso apagará TODOS os dados salvos (usuário, tema, cartões). Ação irreversível.",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Resetar", 
+                    style: "destructive", 
+                    onPress: async () => {
+                        try {
+                            // Ação "Nuclear": Limpa tudo
+                            await AsyncStorage.clear(); 
+                            
+                            Toast.show({ type: 'success', text1: 'App Resetado!', text2: 'Reinicie o aplicativo.' });
+                            
+                            // Navega para a tela de Boas-Vindas
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: 'Welcome' }],
+                            });
+                        } catch (e) {
+                            console.error("Falha ao resetar o app.", e);
+                            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível resetar o app.' });
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     // Verifica se houve alguma alteração para habilitar o botão
     const hasChanges = name !== originalName || email !== originalEmail;
 
@@ -135,6 +167,18 @@ const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
                 >
                     <Text style={styles.saveButtonText}>Salvar Alterações</Text>
                 </TouchableOpacity>
+
+                {/* Botão de Reset (Apenas para Desenvolvimento) */}
+                {__DEV__ && (
+                    <TouchableOpacity
+                        style={styles.resetButton}
+                        onPress={handleAppReset}
+                    >
+                        <Ionicons name="nuclear-outline" size={20} color="#FFC107" />
+                        <Text style={styles.resetButtonText}>Resetar App (Dev)</Text>
+                    </TouchableOpacity>
+                )}
+
             </ScrollView>
         </View>
     );
@@ -194,6 +238,23 @@ const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         color: '#fff',
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    resetButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: currentColors.card,
+        padding: 15,
+        borderRadius: 8,
+        marginTop: 300,
+        borderWidth: 1,
+        borderColor: '#FFC107',
+    },
+    resetButtonText: {
+        color: '#FFC107',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
     }
 });
 

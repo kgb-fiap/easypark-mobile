@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
-    Animated, Easing, Modal, ScrollView
+    Animated, Easing, Modal, ScrollView, BackHandler
 } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useFocusEffect } from "@react-navigation/native";
@@ -49,7 +49,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const [userName, setUserName] = useState<string>('Usuário');
     const [location, setLocation] = useState<Location.LocationObject | null>(null);
     const [initialRegion, setInitialRegion] = useState<Region | null>(null);
-    const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([]);
+    const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(MOCK_PARKING_SPOTS);
 
     // --- Estados dos Painéis e Modal ---
     const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
@@ -255,7 +255,25 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             });
         }
     }, [selectedSpot]);
-    
+
+    // Efeito para Interceptar o Botão "Voltar"
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                // Se o usuário está na Home, o botão "Voltar" do Android fecha o aplicativo
+                BackHandler.exitApp();
+                // Retorna true para PREVENIR a ação de voltar padrão do Android
+                return true;
+            };
+
+            // Adiciona o ouvinte
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            // Remove o ouvinte quando a tela perde o foco
+            return () => subscription.remove();
+        }, [])
+    );
+
     return (
         <View style={styles.container}>
 

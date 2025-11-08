@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-nati
 import { Ionicons } from "@expo/vector-icons";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../App";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-toast-message';
 
 import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
@@ -18,6 +20,28 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
+
+    // Função de logout
+    const handleLogout = async () => {
+        try {
+            // Remove todos os dados específicos do usuário
+            await AsyncStorage.removeItem('@user_name');
+            await AsyncStorage.removeItem('@payment_methods');
+            await AsyncStorage.removeItem('@recent_searches');
+
+            Toast.show({ type: 'success', text1: 'Você saiu!', text2: 'Até a próxima.' });
+
+            // Reseta a navegação para a tela de Welcome, limpando o histórico
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Welcome' }],
+            });
+
+        } catch (e) {
+            console.error("Falha ao fazer logout.", e);
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível sair.' });
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -53,6 +77,12 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
                     <Text style={styles.cardText}>Ajuda e suporte</Text>
                     <Ionicons name="chevron-forward" size={22} color="#888" />
                 </TouchableOpacity>
+
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                    <Ionicons name="log-out-outline" size={20} color="#D9534F" />
+                    <Text style={styles.logoutButtonText}>Sair</Text>
+                </TouchableOpacity>
+
             </ScrollView>
 
             {/* --- Barra de Navegação Inferior --- */}
@@ -120,6 +150,23 @@ const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         marginLeft: 15,
         fontSize: 16,
         color: currentColors.text,
+    },
+    logoutButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: currentColors.card,
+        padding: 15,
+        borderRadius: 8,
+        marginTop: 30,
+        borderWidth: 1,
+        borderColor: '#D9534F',
+    },
+    logoutButtonText: {
+        color: '#D9534F',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
     },
     navBar: {
         position: "absolute",
