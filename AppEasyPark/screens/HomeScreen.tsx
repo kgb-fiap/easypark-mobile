@@ -187,7 +187,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         (async () => {
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                console.error('Permissão de localização negada');
+                console.warn('Permissão de localização negada');
                 // Define uma região padrão se a permissão for negada
                 // Região padrão: São Paulo, Av. Paulista
                 setInitialRegion({
