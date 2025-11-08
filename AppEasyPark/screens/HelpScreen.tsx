@@ -9,7 +9,7 @@ import { useTheme } from '../src/context/ThemeContext';
 import { colors, ThemeColors } from '../src/theme/colors';
 
 const PITCH_VIDEO_URL = "https://youtu.be/lVp7S25vAQ8";
-const SCREENS_NAVIGATION_URL = "";
+const SCREENS_NAVIGATION_URL = "https://youtube.com/shorts/Eyyer4U6Cto?feature=share";
 
 type HelpScreenNavigationProp = StackNavigationProp<RootStackParamList, "Help">;
 
