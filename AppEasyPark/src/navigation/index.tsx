@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 
-import WelcomeScreen from "../screens/Welcome/WelcomeScreen";
+import WelcomeScreen from "../screens/auth/Welcome/WelcomeScreen";
 import LoginScreen from "../screens/auth/Login/LoginScreen";
 import RegisterScreen from "../screens/auth/Register/RegisterScreen";
 import HomeScreen from "../screens/Home/HomeScreen";

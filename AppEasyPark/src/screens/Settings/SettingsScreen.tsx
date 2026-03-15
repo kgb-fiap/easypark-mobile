@@ -4,13 +4,19 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
+// Navigation e Context
 import { RootStackScreenProps } from "../../navigation/types";
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { getStyles } from './styles';
 
-const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation }) => {
+// Components, Hooks, Types e Utils
+import { Header } from '../../components/Header/Header';
+import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
+import { ActionCard } from '../../components/ActionCard/ActionCard';
+import { STORAGE_KEYS } from '../../utils/constants';
 
+const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation }) => {
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -18,10 +24,10 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
     // Função de logout
     const handleLogout = async () => {
         try {
-            // Remove todos os dados específicos do usuário
-            await AsyncStorage.removeItem('@user_name');
-            await AsyncStorage.removeItem('@payment_methods');
-            await AsyncStorage.removeItem('@recent_searches');
+            // Remove todos os dados específicos do usuário usando constantes seguras
+            await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
+            await AsyncStorage.removeItem(STORAGE_KEYS.PAYMENT_METHODS);
+            await AsyncStorage.removeItem(STORAGE_KEYS.RECENT_SEARCHES);
 
             Toast.show({ type: 'success', text1: 'Você saiu!', text2: 'Até a próxima.' });
 
@@ -39,38 +45,33 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
 
     return (
         <View style={styles.container}>
+            <Header title="Configurações" showBackButton={false} />
 
-            <View style={styles.header}>
-                <Text style={styles.title}>Configurações</Text>
-                <View style={{ width: 24 }} />
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+                
+                <ActionCard 
+                    title="Informações de perfil" 
+                    leftIconName="person-outline" 
+                    onPress={() => navigation.navigate("ProfileInfo")} 
+                />
 
-            {/* --- Cards --- */}
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("ProfileInfo")}>
-                    <Ionicons name="person-outline" size={24} color="#03BB85" />
-                    <Text style={styles.cardText}>Informações de perfil</Text>
-                    <Ionicons name="chevron-forward" size={22} color="#888" />
-                </TouchableOpacity>
+                <ActionCard 
+                    title="Formas de pagamento" 
+                    leftIconName="card-outline" 
+                    onPress={() => navigation.navigate("PaymentMethods")} 
+                />
 
-                <TouchableOpacity style={styles.card}
-                    onPress={() => navigation.navigate("PaymentMethods")}>
-                    <Ionicons name="card-outline" size={24} color="#03BB85" />
-                    <Text style={styles.cardText}>Formas de pagamento</Text>
-                    <Ionicons name="chevron-forward" size={22} color="#888" />
-                </TouchableOpacity>
+                <ActionCard 
+                    title="Preferências do usuário" 
+                    leftIconName="options-outline" 
+                    onPress={() => navigation.navigate("UserPreferences")} 
+                />
 
-                <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("UserPreferences")}>
-                    <Ionicons name="options-outline" size={24} color="#03BB85" />
-                    <Text style={styles.cardText}>Preferências do usuário</Text>
-                    <Ionicons name="chevron-forward" size={22} color="#888" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.card} onPress={() => navigation.navigate("Help")}>
-                    <Ionicons name="help-circle-outline" size={24} color="#03BB85" />
-                    <Text style={styles.cardText}>Ajuda e suporte</Text>
-                    <Ionicons name="chevron-forward" size={22} color="#888" />
-                </TouchableOpacity>
+                <ActionCard 
+                    title="Ajuda e suporte" 
+                    leftIconName="help-circle-outline" 
+                    onPress={() => navigation.navigate("Help")} 
+                />
 
                 <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                     <Ionicons name="log-out-outline" size={20} color="#D9534F" />
@@ -79,24 +80,7 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
 
             </ScrollView>
 
-            {/* --- Barra de Navegação Inferior --- */}
-            <View style={styles.navBar}>
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
-                    <Ionicons name="home" size={26} color={currentColors.muted} />
-                    <Text style={styles.navLabel}>Início</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="time-outline" size={26} color={currentColors.muted} />
-                    <Text style={styles.navLabel}>Histórico</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Settings")}>
-                    <Ionicons name="settings-outline" size={26} color={currentColors.primary} />
-                    <Text style={[styles.navLabel, { color: currentColors.primary }]}>Configurações</Text>
-                </TouchableOpacity>
-            </View>
-
+            <BottomNavBar currentRoute="Settings" />
         </View>
     );
 };

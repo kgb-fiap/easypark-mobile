@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { ThemeColors } from '../../theme/colors';
+import { ThemeColors } from '../../../theme/colors';
 
 export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     container: {
@@ -15,34 +15,16 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         marginBottom: 20,
     },
     title: {
-        fontFamily: "",
         fontSize: 28,
         fontWeight: "900",
         color: currentColors.text,
         marginBottom: 80,
     },
     titleAccent: {
-        color: "#03BB85",
+        color: currentColors.primary,
     },
-    greenButton: {
-        backgroundColor: "#03BB85",
-        width: "100%",
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: "center",
-        marginBottom: 15,
-    },
-    buttonText: {
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    blackButton: {
+    secondaryButton: {
         backgroundColor: "#2A2A2A",
-        width: "100%",
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: "center",
         marginBottom: 15,
     },
     forgotText: {

@@ -1,30 +1,34 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-    View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
-    Animated, Easing, Modal, ScrollView, BackHandler
+    View, Text, TouchableOpacity, ActivityIndicator,
+    Animated, Easing, Modal, ScrollView, BackHandler, StyleSheet
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import MapView, { Marker, Region, MarkerPressEvent } from 'react-native-maps';
-import * as Location from 'expo-location';
+import MapView, { Marker, MarkerPressEvent } from 'react-native-maps';
 
+// Arquitetura e Contexto
 import { RootStackScreenProps } from "../../navigation/types";
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { lightMapStyle, darkMapStyle } from '../../theme/mapStyles';
 import { getStyles } from './styles';
 
+// Componentes e Hooks Reutilizáveis
+import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
+import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
+import { useLocation } from '../../hooks/useLocation';
+import { useCountdown } from '../../hooks/useCountdown';
+import { STORAGE_KEYS } from '../../utils/constants';
+
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
     { id: '2', title: "Shopping Pátio Paulista", description: "Vagas: 30", coords: { latitude: -23.56275, longitude: -46.64855 } },
     { id: '3', title: "Estacionamento Augusta", description: "Vagas: 5", coords: { latitude: -23.55145, longitude: -46.65825 } },
-    // Um estacionamento distante (ex: Morumbi) para testar o filtro de 5km
-    { id: '4', title: "Estacionamento Morumbi", description: "Vagas: 50", coords: { latitude: -23.6234, longitude: -46.7388 } },
 ];
-type ParkingSpot = typeof MOCK_PARKING_SPOTS[0];
 
 interface PaymentItem {
     id: string;
@@ -34,75 +38,73 @@ interface PaymentItem {
 }
 
 const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
-
     const { theme, toggleTheme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
 
-    // --- Estados da UI e Dados ---
+    // 1. Invocando os Hooks de Regra de Negócio
+    const { location, initialRegion } = useLocation();
+    const { countdown, isActive: isTimerActive, startTimer, stopTimer } = useCountdown(30);
+
+    // 2. Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
-    const [location, setLocation] = useState<Location.LocationObject | null>(null);
-    const [initialRegion, setInitialRegion] = useState<Region | null>(null);
-    const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(MOCK_PARKING_SPOTS);
-
-    // --- Estados dos Painéis e Modal ---
-    const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
-    const [sheetData, setSheetData] = useState<ParkingSpot | null>(null);
+    const [parkingSpots, setParkingSpots] = useState(MOCK_PARKING_SPOTS);
+    const [selectedSpot, setSelectedSpot] = useState<any>(null);
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
-
-    // --- Estados do Modal de Confirmação ---
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
     const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-    const [countdown, setCountdown] = useState(30);
 
-    // --- Refs ---
+    // 3. Refs para Animações e Mapa
     const mapRef = useRef<MapView>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current;
-    const timerAnim = useRef(new Animated.Value(100)).current;
-    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timerAnim = useRef(new Animated.Value(100)).current; // Controla apenas o aspecto visual (largura)
 
-    // --- Lógica do Timer de Confirmação ---
-    const stopTimer = () => {
-        if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current);
-            timerIntervalRef.current = null;
-        }
-        timerAnim.stopAnimation(); // Para a animação da barra
-    };
+    // --- Efeitos de Ciclo de Vida ---
+    
+    // Carrega Nome
+    useEffect(() => {
+        AsyncStorage.getItem(STORAGE_KEYS.USER_NAME)
+            .then(name => name && setUserName(name.split(' ')[0]));
+    }, []);
 
-    const handleTimeout = () => {
-        Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
-        setIsConfirmationVisible(false);
-        setSelectedSpot(null); // Fecha ambos os painéis
-    };
+    // Intercepta Botão Voltar do Android
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => { BackHandler.exitApp(); return true; };
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            return () => subscription.remove();
+        }, [])
+    );
 
-    const startTimer = () => {
-        stopTimer();
-        setCountdown(30);
-        timerAnim.setValue(100); // Reseta a barra para 100%
+    // Carrega Métodos de Pagamento quando a tela ganha foco
+    useFocusEffect(
+        useCallback(() => {
+            AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_METHODS)
+                .then(val => val && setSavedPayments(JSON.parse(val)))
+                .catch(e => console.error(e));
+        }, [])
+    );
 
-        // Anima a barra de 100% para 0% em 30 segundos
-        Animated.timing(timerAnim, {
-            toValue: 0,
-            duration: 30000,
-            easing: Easing.linear,
-            useNativeDriver: false, // 'width' não é suportado pelo driver nativo
+    // Animação do Bottom Sheet de Vaga
+    useEffect(() => {
+        Animated.timing(sheetAnim, {
+            toValue: selectedSpot ? 0 : 300,
+            duration: 200,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
         }).start();
+    }, [selectedSpot]);
 
-        // Inicia o contador de texto
-        timerIntervalRef.current = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    stopTimer();
-                    handleTimeout();
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    };
+    // Ouve o Timer do Hook para desativar o modal automaticamente
+    useEffect(() => {
+        if (isConfirmationVisible && isTimerActive && countdown === 0) {
+            setIsConfirmationVisible(false);
+            setSelectedSpot(null);
+            Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
+        }
+    }, [countdown, isTimerActive, isConfirmationVisible]);
 
-    // --- Handlers de Ação do Mapa ---
+    // --- Handlers ---
     const goToMyLocation = () => {
         if (location) {
             mapRef.current?.animateToRegion({
@@ -114,164 +116,41 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
         }
     };
 
-    const handleMarkerPress = (e: MarkerPressEvent) => {
-        const spotId = e.nativeEvent.id;
-        const spot = parkingSpots.find(p => p.id === spotId);
-        if (spot) {
-            setSelectedSpot(spot);
-            setSelectedPaymentId(null); // Reseta o pagamento selecionado
-        }
-    };
-
-    // --- Handlers de Ação dos Painéis (Reserva) ---
     const handleReserveClick = () => {
-        // Pré-seleciona o primeiro cartão, se existir
-        if (savedPayments.length > 0) {
-            setSelectedPaymentId(savedPayments[0].id);
-        } else {
-            setSelectedPaymentId(null); // Se não houver nenhum cartão, força o usuário a escolher
-        }
+        setSelectedPaymentId(savedPayments.length > 0 ? savedPayments[0].id : null);
         setIsConfirmationVisible(true);
-        startTimer();
+        startTimer(); // Aciona o Hook
+        
+        // Aciona a animação visual da barra
+        timerAnim.setValue(100);
+        Animated.timing(timerAnim, {
+            toValue: 0,
+            duration: 30000,
+            easing: Easing.linear,
+            useNativeDriver: false,
+        }).start();
     };
 
-    const handleConfirmReservation = () => { // Handle de confirmação da reserva
-        // Validação do pagamento selecionado
+    const handleConfirmReservation = () => {
         if (!selectedPaymentId) {
-            Toast.show({ type: 'error', text1: 'Pagamento não selecionado', text2: 'Por favor, escolha um método de pagamento.' });
+            Toast.show({ type: 'error', text1: 'Atenção', text2: 'Escolha um método de pagamento.' });
             return;
         }
-        stopTimer();
+        stopTimer(); // Para o Hook
         Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
         setIsConfirmationVisible(false);
         setSelectedSpot(null);
     };
 
-    const handleCancelReservation = () => { // Handle de cancelamento da reserva
-        stopTimer();
-        Toast.show({ type: 'info', text1: 'Reserva cancelada.' });
-        setIsConfirmationVisible(false); // Fecha o modal (painel de info continua)
+    const handleCancelReservation = () => {
+        stopTimer(); // Para o hook
+        setIsConfirmationVisible(false);
     };
-
-    // Carrega o nome do usuário (ao iniciar)
-    useEffect(() => {
-        // Função para buscar os dados do usuário:
-        const loadUserName = async () => {
-            try {
-                // Busca o nome do usuário salvo no armazenamento do dispositivo
-                const storedName = await AsyncStorage.getItem('@user_name');
-
-                // Se um nome foi encontrado, atualiza o estado.
-                if (storedName !== null) {
-                    // Pega o primeiro nome para a saudação
-                    const firstName = storedName.split(' ')[0];
-                    setUserName(firstName);
-                }
-            } catch (e) {
-                // Em caso de erro:
-                console.error("Falha ao carregar o nome.", e);
-            }
-        };
-        // Executa a função de carregamento
-        loadUserName();
-    }, []); // O array vazio garante que o efeito execute apenas na montagem do componente e apenas uma única vez
-
-    // Pede permissão e carrega a localização (ao iniciar)
-    useEffect(() => {
-        (async () => {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-                console.warn('Permissão de localização negada');
-                // Define uma região padrão se a permissão for negada
-                // Região padrão: São Paulo, Av. Paulista
-                setInitialRegion({
-                    latitude: -23.56158,
-                    longitude: -46.65609,
-                    latitudeDelta: 0.0922,
-                    longitudeDelta: 0.0421,
-                });
-                return;
-            }
-
-            let currentLocation = await Location.getCurrentPositionAsync({});
-            setLocation(currentLocation);
-            setInitialRegion({
-                latitude: currentLocation.coords.latitude,
-                longitude: currentLocation.coords.longitude,
-                latitudeDelta: 0.02,
-                longitudeDelta: 0.01,
-            });
-        })();
-    }, []);
-
-    // Carrega os estacionamentos (ao iniciar)
-    useEffect(() => {
-        // Simula uma busca na API
-        setParkingSpots(MOCK_PARKING_SPOTS);
-    }, []);
-
-    // Efeito para Animação do Painel de Info (observa 'selectedSpot')
-    useFocusEffect(
-        useCallback(() => {
-            const loadPaymentMethods = async () => {
-                try {
-                    const jsonValue = await AsyncStorage.getItem('@payment_methods');
-                    if (jsonValue !== null) {
-                        setSavedPayments(JSON.parse(jsonValue));
-                    }
-                } catch (e) {
-                    console.error("Falha ao carregar métodos.", e);
-                }
-            };
-            loadPaymentMethods();
-        }, [])
-    );
-
-    // Efeito para mostrar a opção de reservar quando um estacionamento é selecionado
-    useEffect(() => {
-        if (selectedSpot) {
-            setSheetData(selectedSpot);
-            Animated.timing(sheetAnim, {
-                toValue: 0,
-                duration: 200,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }).start();
-        } else {
-            stopTimer();
-            Animated.timing(sheetAnim, {
-                toValue: 300,
-                duration: 200,
-                easing: Easing.inOut(Easing.ease),
-                useNativeDriver: true,
-            }).start(() => {
-                setSheetData(null);
-            });
-        }
-    }, [selectedSpot]);
-
-    // Efeito para Interceptar o Botão "Voltar"
-    useFocusEffect(
-        useCallback(() => {
-            const onBackPress = () => {
-                // Se o usuário está na Home, o botão "Voltar" do Android fecha o aplicativo
-                BackHandler.exitApp();
-                // Retorna true para PREVENIR a ação de voltar padrão do Android
-                return true;
-            };
-
-            // Adiciona o ouvinte
-            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
-            // Remove o ouvinte quando a tela perde o foco
-            return () => subscription.remove();
-        }, [])
-    ); 
 
     return (
         <View style={styles.container}>
 
-            {/* Tela de Loading enquanto o mapa carrega a região */}
+            {/* Mapa ou Loading */}
             {initialRegion ? (
                 <MapView
                     ref={mapRef}
@@ -282,14 +161,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                     showsMyLocationButton={false}
                     showsCompass={false}
                     toolbarEnabled={false}
-                    onMarkerPress={handleMarkerPress}
-                    onPress={() => setSelectedSpot(null)} // Limpa seleção ao clicar no mapa
+                    onPress={() => setSelectedSpot(null)}
                 >
                     {parkingSpots.map(spot => (
                         <Marker
                             key={spot.id}
                             identifier={spot.id}
                             coordinate={spot.coords}
+                            onPress={() => setSelectedSpot(spot)}
                             image={require('../../../assets/images/parking-icon.png')}
                         />
                     ))}
@@ -301,72 +180,43 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 </View>
             )}
 
+            {/* Cabeçalho */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.greeting}>Olá, {userName}</Text>
-                </View>
-
-                <View style={styles.headerIcons}>
-                    <TouchableOpacity onPress={toggleTheme}>
-                        <Ionicons
-                            name={theme === 'light' ? 'moon-outline' : 'sunny-outline'}
-                            size={24}
-                            color="#fff"
-                        />
-                    </TouchableOpacity>
-                </View>
+                <Text style={styles.greeting}>Olá, {userName}</Text>
+                <TouchableOpacity onPress={toggleTheme}>
+                    <Ionicons name={theme === 'light' ? 'moon-outline' : 'sunny-outline'} size={24} color="#fff" />
+                </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-                style={styles.searchBar}
-                onPress={() => navigation.navigate("Search")}
-            >
+            {/* Barra de Busca e GPS */}
+            <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
                 <Ionicons name="search" size={20} color={currentColors.text} />
                 <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-                style={styles.recenterButton}
-                onPress={goToMyLocation}
-            >
+            <TouchableOpacity style={styles.recenterButton} onPress={goToMyLocation}>
                 <Ionicons name="locate" size={24} color={currentColors.text} />
             </TouchableOpacity>
 
-            {/* --- Painel de Informações --- */}
-            {sheetData && (
-                <Animated.View
-                    style={[
-                        styles.bottomSheet,
-                        { transform: [{ translateY: sheetAnim }] }
-                    ]}
-                >
-                    <Text style={styles.sheetTitle}>{sheetData.title}</Text>
-                    <Text style={styles.sheetDescription}>{sheetData.description}</Text>
-                    <TouchableOpacity style={styles.reserveButton} onPress={handleReserveClick}>
-                        <Text style={styles.reserveButtonText}>Reservar Vaga</Text>
-                    </TouchableOpacity>
+            {/* Painel Inferior de Vaga */}
+            {selectedSpot && (
+                <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetAnim }] }]}>
+                    <Text style={styles.sheetTitle}>{selectedSpot.title}</Text>
+                    <Text style={styles.sheetDescription}>{selectedSpot.description}</Text>
+                    
+                    <PrimaryButton title="Reservar Vaga" onPress={handleReserveClick} />
                 </Animated.View>
             )}
 
-            {/* --- Modal de Confirmação --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={isConfirmationVisible}
-                onRequestClose={handleCancelReservation}
-            >
+            {/* Modal de Confirmação (Agora mais limpo usando PrimaryButton) */}
+            <Modal animationType="slide" transparent={true} visible={isConfirmationVisible} onRequestClose={handleCancelReservation}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmationPanel}>
                         <Text style={styles.sheetTitle}>Confirmar Reserva?</Text>
-                        <Text style={styles.sheetDescription}>
-                            {sheetData?.title}
-                        </Text>
-                        <Text style={styles.sheetSubText}>
-                            Você deve chegar em 15 minutos para garantir sua vaga.
-                        </Text>
+                        <Text style={styles.sheetDescription}>{selectedSpot?.title}</Text>
+                        <Text style={styles.sheetSubText}>Chegue em 15 minutos para garantir.</Text>
 
                         <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
-
                         <ScrollView style={styles.paymentList} nestedScrollEnabled={true}>
                             {savedPayments.map(card => {
                                 const isSelected = selectedPaymentId === card.id;
@@ -377,7 +227,9 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                                         onPress={() => setSelectedPaymentId(card.id)}
                                     >
                                         <Ionicons name="card" size={18} color={isSelected ? '#fff' : currentColors.primary} />
-                                        <Text style={[styles.pickerButtonText, isSelected && styles.pickerButtonTextSelected]}>{`${card.brand} •••• ${card.last4}`}</Text>
+                                        <Text style={[styles.pickerButtonText, isSelected && styles.pickerButtonTextSelected]}>
+                                            {`${card.brand} •••• ${card.last4}`}
+                                        </Text>
                                     </TouchableOpacity>
                                 );
                             })}
@@ -402,10 +254,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
 
                             <TouchableOpacity
                                 style={styles.addButton}
-                                onPress={() => {
-                                    setIsConfirmationVisible(false); // Fecha o modal
-                                    navigation.navigate('PaymentMethods'); // Navega para métodos de pagamento
-                                }}
+                                onPress={() => { setIsConfirmationVisible(false); navigation.navigate('PaymentMethods'); }}
                             >
                                 <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
                                 <Text style={styles.addButtonText}>Adicionar novo cartão</Text>
@@ -415,44 +264,24 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                         <View style={styles.timerContainer}>
                             <View style={styles.timerBarBackground}>
                                 <Animated.View style={[styles.timerBarForeground, {
-                                    width: timerAnim.interpolate({
-                                        inputRange: [0, 100],
-                                        outputRange: ['0%', '100%']
-                                    })
+                                    width: timerAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
                                 }]} />
                             </View>
                             <Text style={styles.timerText}>Tempo restante: {countdown}s</Text>
                         </View>
 
                         <View style={styles.actionRow}>
-                            <TouchableOpacity style={styles.cancelButton} onPress={handleCancelReservation}>
-                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            <TouchableOpacity onPress={handleCancelReservation}>
+                                <Text style={styles.cancelText}>Cancelar</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmReservation}>
-                                <Text style={styles.confirmButtonText}>Confirmar</Text>
-                            </TouchableOpacity>
+                            
+                            <PrimaryButton title="Confirmar" onPress={handleConfirmReservation} containerStyle={{ flex: 1, marginLeft: 20 }} />
                         </View>
                     </View>
                 </View>
             </Modal>
 
-            {/* --- Barra de Navegação Inferior --- */}
-            <View style={styles.navBar}>
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Home")}>
-                    <Ionicons name="home" size={26} color={currentColors.primary} />
-                    <Text style={[styles.navLabel, { color: currentColors.primary }]}>Início</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("History")}>
-                    <Ionicons name="time-outline" size={26} color={currentColors.muted} />
-                    <Text style={styles.navLabel}>Histórico</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.bottomNav} onPress={() => navigation.navigate("Settings")}>
-                    <Ionicons name="settings-outline" size={26} color={currentColors.muted} />
-                    <Text style={styles.navLabel}>Configurações</Text>
-                </TouchableOpacity>
-            </View>
+            <BottomNavBar currentRoute="Home" />
         </View>
     );
 };

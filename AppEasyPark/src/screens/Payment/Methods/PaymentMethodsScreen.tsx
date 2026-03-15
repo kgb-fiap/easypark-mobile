@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ListRenderItemInfo, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ListRenderItemInfo, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Navigation e Context
 import { RootStackScreenProps } from '../../../navigation/types';
 import { useTheme } from '../../../context/ThemeContext';
 import { colors } from '../../../theme/colors';
 import { getStyles } from './styles';
+
+// Components, Hooks, Types e Utils
+import { Header } from '../../../components/Header/Header';
+import { CustomInput } from '../../../components/CustomInput/CustomInput';
+import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
+import { STORAGE_KEYS } from '../../../utils/constants';
 
 interface PaymentItem {
     id: string;
@@ -15,11 +22,7 @@ interface PaymentItem {
     last4?: string;
 }
 
-// Chave única para o AsyncStorage
-const STORAGE_KEY = '@payment_methods';
-
 const PaymentMethodsScreen: React.FC<RootStackScreenProps<'PaymentMethods'>> = ({ navigation }) => {
-
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -36,7 +39,7 @@ const PaymentMethodsScreen: React.FC<RootStackScreenProps<'PaymentMethods'>> = (
     useEffect(() => {
         const loadMethods = async () => {
             try {
-                const savedMethodsJson = await AsyncStorage.getItem(STORAGE_KEY);
+                const savedMethodsJson = await AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_METHODS);
                 if (savedMethodsJson !== null) {
                     setMethods(JSON.parse(savedMethodsJson));
                 }
@@ -52,7 +55,7 @@ const PaymentMethodsScreen: React.FC<RootStackScreenProps<'PaymentMethods'>> = (
         const saveMethods = async () => {
             try {
                 const methodsJson = JSON.stringify(methods);
-                await AsyncStorage.setItem(STORAGE_KEY, methodsJson);
+                await AsyncStorage.setItem(STORAGE_KEYS.PAYMENT_METHODS, methodsJson);
             } catch (e) {
                 console.error('Failed to save payment methods.', e);
             }
@@ -101,20 +104,10 @@ const PaymentMethodsScreen: React.FC<RootStackScreenProps<'PaymentMethods'>> = (
     return (
         <View style={styles.container}>
 
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Ionicons
-                        name={"return-down-back"}
-                        size={26}
-                        color="#ffffff"
-                    />
-                </TouchableOpacity>
-                <Text style={styles.title}>Formas de Pagamento</Text>
-                <View style={{ width: 24 }} />
-            </View>
+            <Header title="Formas de Pagamento" />
 
             <FlatList
-                data={methods} // Usa o estado dinâmico
+                data={methods}
                 renderItem={renderPaymentItem}
                 keyExtractor={item => item.id}
                 contentContainerStyle={styles.listContainer}
@@ -157,27 +150,28 @@ const PaymentMethodsScreen: React.FC<RootStackScreenProps<'PaymentMethods'>> = (
                             </TouchableOpacity>
                         </View>
 
-                        <TextInput
-                            style={styles.input}
+                        <CustomInput
                             placeholder="Últimos 4 dígitos"
-                            placeholderTextColor={currentColors.muted}
-                            keyboardType="number-pad"
-                            maxLength={4}
                             value={cardLast4}
                             onChangeText={setCardLast4}
+                            keyboardType="number-pad"
+                            maxLength={4}
                         />
+
                         <View style={styles.modalActions}>
                             <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
                                 <Text style={styles.cancelButtonText}>Cancelar</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.saveButton} onPress={handleAddMethod}>
-                                <Text style={styles.saveButtonText}>Salvar</Text>
-                            </TouchableOpacity>
+                            
+                            <PrimaryButton 
+                                title="Salvar" 
+                                onPress={handleAddMethod} 
+                                containerStyle={{ flex: 1, marginLeft: 15 }} 
+                            />
                         </View>
                     </View>
                 </View>
             </Modal>
-
         </View>
     );
 };

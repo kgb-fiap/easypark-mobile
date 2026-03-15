@@ -6,20 +6,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         flex: 1,
         backgroundColor: currentColors.background,
     },
-    header: {
-        backgroundColor: currentColors.primary,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: "#fff",
-    },
     listContainer: {
         padding: 20,
         flexGrow: 1,
@@ -32,6 +18,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         padding: 20,
         borderRadius: 12,
         marginBottom: 15,
+        elevation: 2,
     },
     methodDetails: {
         flex: 1,
@@ -73,7 +60,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         color: currentColors.muted,
         fontSize: 16,
     },
-
     modalOverlay: {
         flex: 1,
         justifyContent: 'center',
@@ -115,39 +101,20 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     brandButtonTextSelected: {
         color: '#fff',
     },
-    input: {
-        width: '100%',
-        borderWidth: 1,
-        borderColor: currentColors.muted,
-        borderRadius: 8,
-        padding: 15,
-        fontSize: 16,
-        color: currentColors.text,
-        textAlign: 'center',
-        marginBottom: 30,
-    },
     modalActions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'center',
         width: '100%',
+        marginTop: 10,
     },
     cancelButton: {
         paddingVertical: 12,
-        paddingHorizontal: 30,
+        paddingHorizontal: 20,
         borderRadius: 8,
     },
     cancelButtonText: {
         color: currentColors.muted,
-        fontWeight: 'bold',
-    },
-    saveButton: {
-        backgroundColor: currentColors.primary,
-        paddingVertical: 12,
-        paddingHorizontal: 40,
-        borderRadius: 8,
-    },
-    saveButtonText: {
-        color: '#fff',
         fontWeight: 'bold',
     },
 });

@@ -3,59 +3,20 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, L
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Navigation e Context
 import { RootStackScreenProps } from '../../navigation/types';
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { getStyles } from './styles';
 
-interface RecentSearchItem { id: string; line1: string; line2: string;}
-interface NominatimAddress {
-    road?: string;
-    house_number?: string;
-    suburb?: string;
-    city?: string;
-    county?: string;
-    state?: string;
-    postcode?: string;
-}
-interface NominatimResult {
-    place_id: string;
-    display_name: string;
-    lat: string;
-    lon: string;
-    address: NominatimAddress;
-}
-
-type SearchListItem = RecentSearchItem | NominatimResult;
-const RECENT_SEARCHES_KEY = '@recent_searches';
-
-// Formata o endereço retornado pelo Nominatim em duas linhas
-const formatNominatimAddress = (addr: NominatimAddress): { line1: string, line2: string } => {
-    const road = addr.road || '';
-    const number = addr.house_number || '';
-    const suburb = addr.suburb || '';
-    const city = addr.county || addr.city || '';
-    const postcode = addr.postcode || '';
-
-    let line1 = road;
-    if (number) line1 += `, ${number}`;
-    if (suburb) line1 += ` - ${suburb}`;
-
-    let line2 = city;
-    if (addr.state === 'São Paulo' && city !== 'São Paulo') line2 += ', SP';
-    if (postcode) line2 += ` - ${postcode}`;
-
-    const line1Clean = line1.trim().replace(/, $/, '');
-    const line2Clean = line2.trim().replace(/, $/, '').replace(/^- /, '');
-
-    if (!line1Clean && line2Clean) {
-        return { line1: line2Clean, line2: '' };
-    }
-    return { line1: line1Clean, line2: line2Clean };
-};
+// Componentes, Hooks and Utils
+import { Header } from '../../components/Header/Header';
+import { useDebounce } from '../../hooks/useDebounce';
+import { formatNominatimAddress } from '../../utils/formatters';
+import { STORAGE_KEYS } from '../../utils/constants';
+import { NominatimResult, RecentSearchItem, SearchListItem } from '../../types/models';
 
 const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) => {
-
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -66,33 +27,37 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
     const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    // -- Refs ---
     const destinationInputRef = useRef<TextInput>(null);
-    const searchTimer = useRef<NodeJS.Timeout | null>(null);
 
-    // Carrega as buscas recentes ao iniciar a tela
+    // Aplicando o Hook: Atraso de 600ms após o usuário parar de digitar
+    const debouncedQuery = useDebounce(destinationQuery, 600);
+
+    // Carrega buscas recentes ao iniciar
     useEffect(() => {
         const loadRecentSearches = async () => {
             try {
-                const jsonValue = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
-                if (jsonValue !== null) {
-                    setRecentSearches(JSON.parse(jsonValue));
-                }
+                const jsonValue = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
+                if (jsonValue) setRecentSearches(JSON.parse(jsonValue));
             } catch (e) {
-                console.error("Falha ao carregar buscas recentes", e);
+                console.error("Falha ao carregar buscas", e);
             }
         };
         loadRecentSearches();
         setTimeout(() => destinationInputRef.current?.focus(), 150);
     }, []);
 
-    // Função de busca na API (Nominatim)
-    const handleSearch = async (query: string) => {
-        if (query.trim().length < 3) {
-            setSearchResults([]);
-            return;
+    // Efeito limpo que reage apenas ao hook de debounce
+    useEffect(() => {
+        if (debouncedQuery.trim().length >= 3) {
+            handleSearch(debouncedQuery);
+        } else {
+            setSearchResults([]); // Limpa os resultados se o texto for menor que 3 chars
+            setIsLoading(false);
         }
+    }, [debouncedQuery]);
 
+    // Função de busca na API
+    const handleSearch = async (query: string) => {
         setIsLoading(true);
         try {
             const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=br&limit=10&addressdetails=1`;
@@ -110,30 +75,7 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
         }
     };
 
-    // Efeito de DEBOUNCE: Pesquisa conforme o usuário digita
-    useEffect(() => {
-        if (searchTimer.current) clearTimeout(searchTimer.current);
-
-        if (destinationQuery.trim().length === 0) {
-            setSearchResults([]);
-            setIsLoading(false);
-            return;
-        }
-
-        if (destinationQuery.trim().length < 3) {
-            return;
-        }
-
-        searchTimer.current = setTimeout(() => {
-            handleSearch(destinationQuery);
-        }, 500);
-
-        return () => {
-            if (searchTimer.current) clearTimeout(searchTimer.current);
-        };
-    }, [destinationQuery]);
-
-    // Salva uma nova busca recente
+    // Salva busca recente
     const saveRecentSearch = async (item: NominatimResult, line1: string, line2: string) => {
         try {
             const newRecent: RecentSearchItem = {
@@ -145,26 +87,21 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
             const updatedRecents = [newRecent, ...filteredRecents].slice(0, 5);
 
             setRecentSearches(updatedRecents);
-            await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updatedRecents));
+            await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(updatedRecents));
         } catch (e) {
             console.error("Falha ao salvar busca recente", e);
         }
     };
 
-    // Função de renderização
     const renderItem = ({ item }: ListRenderItemInfo<SearchListItem>) => {
-
-        // Type Guard: Verifica se é um item de Busca Recente
         if (!('address' in item)) {
             const recent = item as RecentSearchItem;
             return (
                 <TouchableOpacity
                     style={styles.resultItem}
                     onPress={() => {
-                        if (searchTimer.current) clearTimeout(searchTimer.current);
                         const fullQuery = [recent.line1, recent.line2].filter(Boolean).join(' ');
                         setDestinationQuery(fullQuery);
-                        handleSearch(fullQuery); // Busca imediata
                     }}
                 >
                     <Ionicons name="time-outline" size={23} color={currentColors.muted} style={styles.resultIcon} />
@@ -176,18 +113,14 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
             );
         }
 
-        // Resultado da API (NominatimResult)
         const result = item as NominatimResult;
         const { line1, line2 } = formatNominatimAddress(result.address);
-
         const displayName = line1 || result.display_name;
 
-        // Renderiza o item de resultado
         return (
             <TouchableOpacity style={styles.resultItem} onPress={() => {
                 saveRecentSearch(result, displayName, line2);
-                console.log('Navegar para:', { lat: result.lat, lon: result.lon });
-                // navigation.navigate('Home', { selectedLocation: { lat: parseFloat(result.lat), lon: parseFloat(result.lon) } });
+                navigation.goBack(); // Simula a volta para o mapa
             }}>
                 <Ionicons name="location-outline" size={23} color={currentColors.muted} style={styles.resultIcon} />
                 <View style={styles.resultTextContainer}>
@@ -198,26 +131,19 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
         );
     };
 
-    // Se estiver digitando, mostre os resultados. Se o input estiver vazio, mostre os recentes.
     const isSearching = destinationQuery.trim().length > 0;
     const dataToShow = isSearching ? searchResults : recentSearches;
     const listTitle = isSearching ? "Resultados da Busca" : "Buscas Recentes";
 
     return (
         <View style={styles.container}>
-
-            <View style={styles.titleHeader}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="return-down-back" size={24} color={"#ffffff"} />
-                </TouchableOpacity>
-                <Text style={styles.title}>Encontre seu estacionamento</Text>
-                <View style={{ width: 24 }} />
-            </View>
+        
+            <Header title="Encontre seu estacionamento" />
 
             <View style={styles.inputArea}>
-                <TouchableOpacity onPress={() => handleSearch(destinationQuery)} style={styles.searchIcon}>
+                <View style={styles.searchIcon}>
                     <Ionicons name="search" size={20} color={currentColors.text} />
-                </TouchableOpacity>
+                </View>
                 <TextInput
                     ref={destinationInputRef}
                     style={styles.input}
@@ -227,10 +153,6 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
                     onChangeText={setDestinationQuery}
                     autoFocus={true}
                     returnKeyType="search"
-                    onSubmitEditing={() => {
-                        if (searchTimer.current) clearTimeout(searchTimer.current);
-                        handleSearch(destinationQuery);
-                    }}
                 />
                 {destinationQuery.length > 0 && (
                     <TouchableOpacity onPress={() => {
@@ -245,13 +167,13 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
             <FlatList
                 data={dataToShow}
                 renderItem={renderItem}
-                keyExtractor={(item) => (item as RecentSearchItem).id || (item as NominatimResult).place_id.toString()}
+                keyExtractor={(item) => ('address' in item) ? item.place_id : item.id}
                 contentContainerStyle={styles.listContainer}
                 ListHeaderComponent={
                     <>
-                        {dataToShow.length > 0 || isLoading ? (
+                        {(dataToShow.length > 0 || isLoading) && (
                             <Text style={styles.listTitle}>{listTitle}</Text>
-                        ) : null}
+                        )}
                         {isLoading && (
                             <ActivityIndicator size="large" color={currentColors.primary} style={{ marginVertical: 20 }} />
                         )}
@@ -259,7 +181,6 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
                 }
                 keyboardShouldPersistTaps="handled"
             />
-
         </View>
     );
 };

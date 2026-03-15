@@ -34,35 +34,8 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         fontWeight: "500",
         marginBottom: 5,
     },
-    input: {
-        borderBottomWidth: 1,
-        borderBottomColor: currentColors.muted,
-        marginBottom: 20,
-        paddingVertical: 10,
-        fontSize: 16,
-        color: currentColors.text,
-    },
-    passwordContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        borderBottomColor: currentColors.muted,
-        marginBottom: 10,
-    },
     icon: {
         paddingBottom: 20,
-    },
-    greenButton: {
-        backgroundColor: currentColors.primary,
-        paddingVertical: 14,
-        borderRadius: 8,
-        alignItems: "center",
-        marginBottom: 20,
-        marginTop: 20,
-    },
-    buttonText: {
-        color: "#fff",
-        fontWeight: "bold",
-        fontSize: 16,
     },
     signupText: {
         textAlign: "center",
