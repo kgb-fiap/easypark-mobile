@@ -105,15 +105,21 @@ npx expo start
 O projeto segue uma estrutura de pastas organizada para facilitar a manutenção e escalabilidade:
 
 ```
-AppEasyPark/  
-├── assets/               \# Imagens (ícones, logos) e fontes (TTF/OTF)  
-├── screens/              \# Telas principais  
-├── src/                  \# Código-fonte principal
-│   ├── context/          \# Provedores de Contexto
-│   └── theme/            \# Configurações de design 
-├── app.config.js         \# Configuração dinâmica do Expo (lê o .env)
-├── .env.example          \# Arquivo de exemplo para API
-└── App.tsx               \# Ponto de entrada (Navegação, Provedores)
+AppEasyPark/
+├── assets/                  # Ativos globais (logos, ícones de parking)
+├── src/                     # Núcleo do Aplicativo
+│   ├── api/                 # Serviços de integração
+│   ├── context/             # Provedores
+│   ├── hooks/               # Lógica de negócio reutilizável
+│   ├── navigation/          # Orquestração de rotas e Tipagem Global
+│   ├── screens/             # Telas organizadas por Feature
+│   ├── theme/               # Design System
+│   ├── types/               # Interfaces globais do sistema
+│   └── utils/               # Funções utilitárias (formatadores, validadores)
+├── App.tsx                  # Ponto de entrada e Providers
+├── app.config.js            # Configuração dinâmica do Expo
+├── .env.example             # Variáveis de ambiente
+└── package.json             # Dependências
 ```
 
 ## **🚀 Como Testar o Login**

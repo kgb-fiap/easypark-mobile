@@ -1,25 +1,18 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App";
 
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors } from '../src/theme/colors';
+import { RootStackScreenProps } from "../../navigation/types";
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { getStyles } from './styles';
 
-type UserPreferencesScreenNavigationProp = StackNavigationProp<RootStackParamList, "UserPreferences">;
-
-interface Props {
-    navigation: UserPreferencesScreenNavigationProp;
-}
-
-const UserPreferencesScreen: React.FC<Props> = ({ navigation }) => {
+const UserPreferencesScreen: React.FC<RootStackScreenProps<'UserPreferences'>> = ({ navigation }) => {
 
     const { theme, toggleTheme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
-    // 
     const isDarkMode = theme === 'dark';
 
     return (
@@ -58,47 +51,5 @@ const UserPreferencesScreen: React.FC<Props> = ({ navigation }) => {
         </View>
     );
 };
-
-const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    header: {
-        backgroundColor: currentColors.primary,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    scrollContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 100,
-    },
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: currentColors.card,
-        paddingVertical: 18,
-        paddingHorizontal: 15,
-        borderRadius: 12,
-        marginBottom: 12,
-        elevation: 2,
-    },
-    cardText: {
-        flex: 1,
-        marginLeft: 15,
-        fontSize: 16,
-        color: currentColors.text,
-    }
-});
 
 export default UserPreferencesScreen;

@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ListRenderItemInfo } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { View, Text, FlatList, TouchableOpacity, ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RootStackParamList } from "../App";
-
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors } from '../src/theme/colors';
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+
+import { RootStackScreenProps } from "../../navigation/types";
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { getStyles } from './styles';
 
 interface PaymentItemMock {
     type: 'credit' | 'pix' | 'money';
@@ -17,12 +17,6 @@ interface HistoryItem {
     date: string;
     value: string;
     payment: PaymentItemMock;
-}
-
-type HistoryScreenNavigationProp = StackNavigationProp<RootStackParamList, "History">;
-
-interface Props {
-    navigation: HistoryScreenNavigationProp;
 }
 
 const historyData: HistoryItem[] = [
@@ -38,8 +32,8 @@ const historyData: HistoryItem[] = [
     { id: '10', date: '5 dez, 2024, 18:00', value: 'R$14,00', payment: { type: 'credit', last4: '8879' } },
 ];
 
-const HistoryScreen: React.FC<Props> = ({ navigation }) => {
-
+const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = ({ navigation }) => {
+    
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -124,102 +118,5 @@ const HistoryScreen: React.FC<Props> = ({ navigation }) => {
         </View>
     );
 };
-
-const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    header: {
-        backgroundColor: "#03BB85",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-        elevation: 6,
-    },
-    title: {
-        fontSize: 26,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    listContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 150,
-    },
-    historyItem: {
-        backgroundColor: currentColors.card,
-        borderRadius: 12,
-        paddingVertical: 18,
-        paddingHorizontal: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: currentColors.background === '#FFFFFF' ? 0.05 : 0,
-        shadowRadius: 4,
-        elevation: 3,
-    },
-    itemPlace: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: currentColors.text,
-    },
-    itemDate: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginTop: 5,
-    },
-    itemValue: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: currentColors.text,
-    },
-    paymentContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 4,
-    },
-    paymentText: {
-        color: currentColors.muted,
-        fontSize: 14,
-        marginLeft: 8,
-    },
-    navBar: {
-        position: "absolute",
-        bottom: 50,
-        left: 20,
-        right: 20,
-        backgroundColor: currentColors.card,
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        paddingVertical: 14,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: currentColors.border,
-        elevation: 12,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowOffset: { width: 0, height: 3 },
-        shadowRadius: 5,
-    },
-    bottomNav: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    navLabel: {
-        fontSize: 13,
-        textAlign: "center",
-        color: currentColors.muted,
-        marginTop: 3,
-    },
-});
 
 export default HistoryScreen;

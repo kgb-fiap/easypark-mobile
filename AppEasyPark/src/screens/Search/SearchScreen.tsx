@@ -1,18 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Keyboard, ListRenderItemInfo, ActivityIndicator } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, ListRenderItemInfo } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { RootStackParamList } from '../App';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors } from '../src/theme/colors';
+import { RootStackScreenProps } from '../../navigation/types';
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { getStyles } from './styles';
 
-interface RecentSearchItem {
-    id: string;
-    line1: string;
-    line2: string;
-}
+interface RecentSearchItem { id: string; line1: string; line2: string;}
 interface NominatimAddress {
     road?: string;
     house_number?: string;
@@ -31,14 +27,7 @@ interface NominatimResult {
 }
 
 type SearchListItem = RecentSearchItem | NominatimResult;
-
 const RECENT_SEARCHES_KEY = '@recent_searches';
-
-type SearchScreenNavigationProp = StackNavigationProp<RootStackParamList, "Search">;
-
-interface Props {
-    navigation: SearchScreenNavigationProp;
-}
 
 // Formata o endereço retornado pelo Nominatim em duas linhas
 const formatNominatimAddress = (addr: NominatimAddress): { line1: string, line2: string } => {
@@ -65,7 +54,7 @@ const formatNominatimAddress = (addr: NominatimAddress): { line1: string, line2:
     return { line1: line1Clean, line2: line2Clean };
 };
 
-const SearchScreen: React.FC<Props> = ({ navigation }) => {
+const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) => {
 
     const { theme } = useTheme();
     const currentColors = colors[theme];
@@ -274,84 +263,5 @@ const SearchScreen: React.FC<Props> = ({ navigation }) => {
         </View>
     );
 };
-
-const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    titleHeader: {
-        backgroundColor: currentColors.primary,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    backButton: {
-        padding: 5,
-    },
-    title: {
-        fontSize: 18,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    inputArea: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 15,
-        backgroundColor: currentColors.card,
-        borderBottomWidth: 1,
-        borderBottomColor: currentColors.border,
-    },
-    searchIcon: {
-        padding: 10,
-    },
-    input: {
-        flex: 1,
-        fontSize: 16,
-        color: currentColors.text,
-        paddingVertical: 15,
-    },
-    clearButton: {
-        padding: 5,
-        marginLeft: 10,
-    },
-    listContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-    },
-    listTitle: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginBottom: 20,
-        textTransform: 'uppercase',
-    },
-    resultItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-        paddingBottom: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: currentColors.border,
-    },
-    resultIcon: {
-        marginRight: 15,
-    },
-    resultTextContainer: {
-        flex: 1,
-    },
-    resultNameLine1: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: currentColors.text,
-        marginBottom: 4,
-    },
-    resultNameLine2: {
-        fontSize: 14,
-        color: currentColors.muted,
-    },
-});
 
 export default SearchScreen;

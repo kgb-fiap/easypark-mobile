@@ -3,9 +3,7 @@ import {
     View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
     Animated, Easing, Modal, ScrollView, BackHandler
 } from "react-native";
-import { StackNavigationProp } from "@react-navigation/stack";
 import { useFocusEffect } from "@react-navigation/native";
-import { RootStackParamList } from "../App";
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,9 +11,11 @@ import Toast from 'react-native-toast-message';
 import MapView, { Marker, Region, MarkerPressEvent } from 'react-native-maps';
 import * as Location from 'expo-location';
 
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors, ThemeName } from '../src/theme/colors';
-import { lightMapStyle, darkMapStyle } from '../src/theme/mapStyles';
+import { RootStackScreenProps } from "../../navigation/types";
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { lightMapStyle, darkMapStyle } from '../../theme/mapStyles';
+import { getStyles } from './styles';
 
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
@@ -33,13 +33,7 @@ interface PaymentItem {
     last4?: string;
 }
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
-
-interface Props {
-    navigation: HomeScreenNavigationProp;
-}
-
-const HomeScreen: React.FC<Props> = ({ navigation }) => {
+const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
 
     const { theme, toggleTheme } = useTheme();
     const currentColors = colors[theme];
@@ -296,7 +290,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
                             key={spot.id}
                             identifier={spot.id}
                             coordinate={spot.coords}
-                            image={require('../assets/images/parking-icon.png')}
+                            image={require('../../../assets/images/parking-icon.png')}
                         />
                     ))}
                 </MapView>
@@ -462,281 +456,5 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
     );
 };
-
-const getStyles = (currentColors: ThemeColors, theme: ThemeName) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    mapPlaceholder: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: theme === 'light' ? '#EFEFEF' : '#212121',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loadingText: {
-        marginTop: 10,
-        color: currentColors.muted,
-        fontSize: 16,
-    },
-    header: {
-        position: "absolute",
-        top: 60,
-        left: 20,
-        right: 20,
-        backgroundColor: currentColors.primary,
-        borderRadius: 12,
-        padding: 15,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        elevation: 6,
-    },
-    greeting: {
-        color: "#fff",
-        fontSize: 22,
-        fontWeight: "bold",
-    },
-    headerIcons: {
-        flexDirection: "row",
-        gap: 15,
-    },
-    searchBar: {
-        position: 'absolute',
-        top: 130,
-        left: 20,
-        right: 20,
-        backgroundColor: currentColors.card,
-        borderRadius: 30,
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        elevation: 8,
-    },
-    searchBarPlaceholder: {
-        color: currentColors.text,
-        fontSize: 16,
-        marginLeft: 10,
-    },
-    recenterButton: {
-        position: 'absolute',
-        top: 195,
-        right: 20,
-        backgroundColor: currentColors.card,
-        borderRadius: 50,
-        padding: 12,
-        elevation: 8,
-    },
-    bottomSheet: {
-        position: 'absolute',
-        bottom: 140,
-        left: 20,
-        right: 20,
-        backgroundColor: currentColors.card,
-        borderRadius: 16,
-        padding: 20,
-        elevation: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.15,
-        shadowOffset: { width: 0, height: -3 },
-        shadowRadius: 10,
-    },
-    sheetTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: currentColors.text,
-        textAlign: 'center',
-    },
-    sheetDescription: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginTop: 4,
-        marginBottom: 15,
-        textAlign: 'center',
-    },
-    sheetSubText: {
-        fontSize: 14,
-        color: currentColors.text,
-        textAlign: 'center',
-        marginBottom: 5,
-    },
-    reserveButton: {
-        backgroundColor: currentColors.primary,
-        paddingVertical: 14,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    reserveButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    },
-    confirmationPanel: {
-        height: '70%',
-        width: '100%',
-        backgroundColor: currentColors.card,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 25,
-        alignItems: 'center',
-    },
-    pickerLabel: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginTop: 15,
-        marginBottom: 10,
-        width: '100%',
-    },
-    pickerContainer: {
-        flexDirection: 'row',
-        width: '100%',
-        marginBottom: 10,
-    },
-    pickerButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: currentColors.border,
-        borderRadius: 8,
-        marginHorizontal: 4,
-    },
-    pickerButtonSelected: {
-        backgroundColor: currentColors.primary,
-        borderColor: currentColors.primary,
-    },
-    pickerButtonText: {
-        color: currentColors.text,
-        fontSize: 14,
-        fontWeight: '500',
-        marginLeft: 8,
-    },
-    pickerButtonTextSelected: {
-        color: '#fff',
-    },
-    paymentRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        marginHorizontal: -4,
-    },
-    halfPickerButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        paddingHorizontal: 10,
-        borderWidth: 1,
-        borderColor: currentColors.border,
-        borderRadius: 8,
-        marginHorizontal: 4,
-    },
-    timerContainer: {
-        width: '100%',
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    timerBarBackground: {
-        height: 8,
-        width: '100%',
-        backgroundColor: currentColors.border,
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    timerBarForeground: {
-        height: '100%',
-        backgroundColor: currentColors.primary,
-        borderRadius: 4,
-    },
-    timerText: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginTop: 5,
-    },
-    actionRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
-        marginTop: 25,
-    },
-    cancelButton: {
-        paddingVertical: 14,
-        paddingHorizontal: 30,
-        borderRadius: 10,
-    },
-    cancelButtonText: {
-        color: currentColors.muted,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    confirmButton: {
-        backgroundColor: currentColors.primary,
-        paddingVertical: 14,
-        paddingHorizontal: 40,
-        borderRadius: 10,
-    },
-    confirmButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    paymentList: {
-        width: '100%',
-        maxHeight: 150,
-        marginBottom: 25,
-    },
-    addButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10,
-        paddingVertical: 10,
-        borderWidth: 1,
-        borderColor: currentColors.primary,
-        borderStyle: 'dashed',
-        borderRadius: 12,
-    },
-    addButtonText: {
-        color: currentColors.primary,
-        fontSize: 14,
-        marginLeft: 10,
-        fontWeight: '500',
-    },
-    navBar: {
-        position: "absolute",
-        bottom: 50,
-        left: 20,
-        right: 20,
-        backgroundColor: currentColors.card,
-        flexDirection: "row",
-        justifyContent: "space-around",
-        alignItems: "center",
-        paddingVertical: 14,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: currentColors.border,
-        elevation: 12,
-    },
-    bottomNav: {
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    navLabel: {
-        fontSize: 13,
-        textAlign: "center",
-        color: currentColors.muted,
-        marginTop: 3,
-    },
-});
 
 export default HomeScreen;

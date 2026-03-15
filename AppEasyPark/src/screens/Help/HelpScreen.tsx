@@ -1,24 +1,18 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StackNavigationProp } from "@react-navigation/stack";
-import { RootStackParamList } from "../App";
 import * as Linking from 'expo-linking';
 
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors } from '../src/theme/colors';
+import { RootStackScreenProps } from "../../navigation/types";
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { getStyles } from './styles';
 
 const PITCH_VIDEO_URL = "https://youtu.be/lVp7S25vAQ8";
 const SCREENS_NAVIGATION_URL = "https://youtube.com/shorts/Eyyer4U6Cto?feature=share";
 
-type HelpScreenNavigationProp = StackNavigationProp<RootStackParamList, "Help">;
-
-interface Props {
-    navigation: HelpScreenNavigationProp;
-}
-
-const HelpScreen: React.FC<Props> = ({ navigation }) => {
-
+const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
+    
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -84,66 +78,3 @@ const HelpScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 export default HelpScreen;
-
-const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    header: {
-        backgroundColor: currentColors.primary,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    scrollContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 100,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: currentColors.muted,
-        textTransform: 'uppercase',
-        marginBottom: 15,
-        marginLeft: 5,
-    },
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: currentColors.card,
-        paddingVertical: 18,
-        paddingHorizontal: 15,
-        borderRadius: 12,
-        marginBottom: 15,
-        elevation: 2,
-    },
-    cardTextContainer: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: currentColors.text,
-    },
-    cardDescription: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginTop: 3,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: currentColors.border,
-        marginVertical: 15,
-    }
-});

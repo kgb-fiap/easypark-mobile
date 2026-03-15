@@ -1,22 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 
-import { useTheme } from '../src/context/ThemeContext';
-import { colors, ThemeColors } from '../src/theme/colors';
-import { RootStackParamList } from '../App';
+import { RootStackScreenProps } from "../../navigation/types";
+import { useTheme } from '../../context/ThemeContext';
+import { colors } from '../../theme/colors';
+import { getStyles } from './styles';
 
-type ProfileInfoScreenNavigationProp = StackNavigationProp<RootStackParamList, "ProfileInfo">;
-
-interface Props {
-    navigation: ProfileInfoScreenNavigationProp;
-}
-
-const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
-
+const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navigation }) => {
+    
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
@@ -183,79 +177,5 @@ const ProfileInfoScreen: React.FC<Props> = ({ navigation }) => {
         </View>
     );
 };
-
-const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    header: {
-        backgroundColor: currentColors.primary,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: "bold",
-        color: "#fff",
-    },
-    scrollContainer: {
-        padding: 20,
-    },
-    inputGroup: {
-        marginBottom: 25,
-    },
-    label: {
-        fontSize: 14,
-        color: currentColors.muted,
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: currentColors.card,
-        borderWidth: 1,
-        borderColor: currentColors.border,
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 15,
-        fontSize: 16,
-        color: currentColors.text,
-    },
-    saveButton: {
-        backgroundColor: currentColors.primary,
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    saveButtonDisabled: {
-        backgroundColor: currentColors.muted,
-    },
-    saveButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    resetButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: currentColors.card,
-        padding: 15,
-        borderRadius: 8,
-        marginTop: 300,
-        borderWidth: 1,
-        borderColor: '#FFC107',
-    },
-    resetButtonText: {
-        color: '#FFC107',
-        fontSize: 16,
-        fontWeight: 'bold',
-        marginLeft: 10,
-    }
-});
 
 export default ProfileInfoScreen;
