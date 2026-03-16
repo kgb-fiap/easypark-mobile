@@ -67,7 +67,7 @@ Siga os passos abaixo para rodar o projeto em seu ambiente de desenvolvimento.
 
 1. **Clone o repositório:**
 ```
-git clone https://github.com/FIAP-MOBILE-2025-Agosto/2tdsps-challenge-sprint-2-kgb-sprint-2.git  
+git clone https://github.com/kgb-fiap/easypark-mobile.git  
 cd AppEasyPark
 ```
 
