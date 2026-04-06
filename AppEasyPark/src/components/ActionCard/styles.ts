@@ -22,11 +22,12 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     title: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
     },
     description: {
         fontSize: 14,
+        fontFamily: 'Inter-Regular',
         color: currentColors.muted,
         marginTop: 3,
     },

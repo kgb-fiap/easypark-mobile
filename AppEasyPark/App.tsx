@@ -25,8 +25,12 @@ export default function App() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (fontsLoaded) {
+      console.log("SUCESSO: Fontes carregadas!");
       SplashScreen.hideAsync();
+    } else if (fontError) {
+      console.log("ERRO AO CARREGAR FONTES: ", fontError);
+      SplashScreen.hideAsync(); // Esconde a splash mesmo com erro para podermos ver o app
     }
   }, [fontsLoaded, fontError]);
 

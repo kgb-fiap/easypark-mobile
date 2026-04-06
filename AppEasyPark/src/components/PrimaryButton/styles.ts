@@ -24,6 +24,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     buttonText: {
         color: "#ffffff",
         fontSize: 16,
-        fontWeight: "bold",
+        fontFamily: "Inter-Bold",
     },
 });

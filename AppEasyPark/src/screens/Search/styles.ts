@@ -20,7 +20,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     title: {
         fontSize: 18,
-        fontWeight: "bold",
+        fontFamily: "Montserrat-Bold",
         color: "#fff",
     },
     inputArea: {
@@ -37,6 +37,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 16,
+        fontFamily: "Inter-Regular",
         color: currentColors.text,
         paddingVertical: 15,
     },
@@ -50,6 +51,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     listTitle: {
         fontSize: 14,
+        fontFamily: "Montserrat-Bold",
         color: currentColors.muted,
         marginBottom: 20,
         textTransform: 'uppercase',
@@ -70,12 +72,13 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     resultNameLine1: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: "Montserrat-Bold",
         color: currentColors.text,
         marginBottom: 4,
     },
     resultNameLine2: {
         fontSize: 14,
+        fontFamily: "Inter-Regular",
         color: currentColors.muted,
     },
 });

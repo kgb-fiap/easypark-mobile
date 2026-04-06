@@ -16,7 +16,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     title: {
         fontSize: 28,
-        fontWeight: "900",
+        fontFamily: "Montserrat-Bold", // Título com Montserrat (substitui o fontWeight: "900")
         color: currentColors.text,
         marginBottom: 80,
     },
@@ -29,7 +29,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     forgotText: {
         marginTop: 10,
-        fontStyle: "italic",
+        fontFamily: "Inter-Regular", // Texto normal com Inter (substitui o fontStyle: "italic")
         color: currentColors.text,
     },
 });

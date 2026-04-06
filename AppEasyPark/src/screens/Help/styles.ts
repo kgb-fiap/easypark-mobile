@@ -13,7 +13,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 14,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.muted,
         textTransform: 'uppercase',
         marginBottom: 15,

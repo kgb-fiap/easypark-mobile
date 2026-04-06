@@ -16,6 +16,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         marginTop: 10,
         color: currentColors.muted,
         fontSize: 16,
+        fontFamily: 'Inter-Regular',
     },
     header: {
         position: "absolute",
@@ -33,7 +34,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     greeting: {
         color: "#fff",
         fontSize: 22,
-        fontWeight: "bold",
+        fontFamily: 'Montserrat-Bold',
     },
     headerIcons: {
         flexDirection: "row",
@@ -56,6 +57,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         color: currentColors.text,
         fontSize: 16,
         marginLeft: 10,
+        fontFamily: 'Inter-Regular',
     },
     recenterButton: {
         position: 'absolute',
@@ -82,7 +84,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     },
     sheetTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
         textAlign: 'center',
     },
@@ -92,12 +94,14 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         marginTop: 4,
         marginBottom: 15,
         textAlign: 'center',
+        fontFamily: 'Inter-Regular',
     },
     sheetSubText: {
         fontSize: 14,
         color: currentColors.text,
         textAlign: 'center',
         marginBottom: 5,
+        fontFamily: 'Inter-Medium',
     },
     modalOverlay: {
         flex: 1,
@@ -119,6 +123,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         marginTop: 15,
         marginBottom: 10,
         width: '100%',
+        fontFamily: 'Inter-Regular',
     },
     paymentList: {
         width: '100%',
@@ -143,8 +148,8 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     pickerButtonText: {
         color: currentColors.text,
         fontSize: 14,
-        fontWeight: '500',
         marginLeft: 8,
+        fontFamily: 'Inter-Medium',
     },
     pickerButtonTextSelected: {
         color: '#fff',
@@ -182,7 +187,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         color: currentColors.primary,
         fontSize: 14,
         marginLeft: 10,
-        fontWeight: '500',
+        fontFamily: 'Inter-Medium',
     },
     timerContainer: {
         width: '100%',
@@ -205,6 +210,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         fontSize: 14,
         color: currentColors.muted,
         marginTop: 5,
+        fontFamily: 'Inter-Medium',
     },
     actionRow: {
         flexDirection: 'row',
@@ -216,7 +222,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     cancelText: {
         color: currentColors.muted,
         fontSize: 16,
-        fontWeight: 'bold',
         padding: 10,
+        fontFamily: 'Inter-Bold',
     },
 });

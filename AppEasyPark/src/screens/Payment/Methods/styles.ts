@@ -26,11 +26,12 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     brandText: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
     },
     lastFourText: {
         fontSize: 14,
+        fontFamily: 'Inter-Regular',
         color: currentColors.muted,
         marginTop: 2,
     },
@@ -49,7 +50,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         color: currentColors.primary,
         fontSize: 16,
         marginLeft: 10,
-        fontWeight: '500',
+        fontFamily: 'Inter-Medium',
     },
     emptyContainer: {
         flex: 1,
@@ -59,6 +60,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     emptyText: {
         color: currentColors.muted,
         fontSize: 16,
+        fontFamily: 'Inter-Regular',
     },
     modalOverlay: {
         flex: 1,
@@ -75,7 +77,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     modalTitle: {
         fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
         marginBottom: 20,
     },
@@ -97,6 +99,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     brandButtonText: {
         color: currentColors.muted,
+        fontFamily: 'Inter-Medium',
     },
     brandButtonTextSelected: {
         color: '#fff',
@@ -115,6 +118,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     cancelButtonText: {
         color: currentColors.muted,
-        fontWeight: 'bold',
+        fontFamily: 'Inter-Bold',
     },
 });

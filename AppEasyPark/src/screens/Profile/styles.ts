@@ -23,7 +23,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     resetButtonText: {
         color: '#FFC107',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'Inter-Bold',
         marginLeft: 10,
     }
 });

@@ -28,17 +28,18 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     itemPlace: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
     },
     itemDate: {
         fontSize: 14,
+        fontFamily: 'Inter-Regular',
         color: currentColors.muted,
         marginTop: 5,
     },
     itemValue: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
     },
 });

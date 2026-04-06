@@ -9,7 +9,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     label: {
         fontSize: 14,
         color: currentColors.text,
-        fontWeight: "500",
+        fontFamily: "Inter-Medium",
         marginBottom: 8,
     },
     inputWrapper: {
@@ -25,6 +25,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         flex: 1,
         paddingVertical: 12,
         fontSize: 16,
+        fontFamily: "Inter-Regular",
         color: currentColors.text,
     },
     iconWrapper: {

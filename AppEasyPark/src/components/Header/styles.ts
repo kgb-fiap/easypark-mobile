@@ -10,7 +10,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         paddingHorizontal: 20,
         paddingTop: 60,
         paddingBottom: 20,
-        elevation: 4, // Sombra sutil
+        elevation: 4,
     },
     backButton: {
         padding: 5,
@@ -18,7 +18,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     title: {
         fontSize: 20,
-        fontWeight: "bold",
+        fontFamily: "Montserrat-Bold",
         color: "#fff",
     },
     spacer: {

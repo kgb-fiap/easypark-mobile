@@ -29,7 +29,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         flex: 1,
         marginLeft: 15,
         fontSize: 16,
-        fontWeight: '500',
+        fontFamily: 'Inter-Medium',
         color: currentColors.text,
     }
 });

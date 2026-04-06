@@ -9,6 +9,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     text: {
         fontSize: 14,
+        fontFamily: 'Inter-Medium',
         marginLeft: 8,
     },
 });

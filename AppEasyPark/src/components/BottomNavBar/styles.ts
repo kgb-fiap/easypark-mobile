@@ -29,6 +29,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     navLabel: {
         fontSize: 12,
         marginTop: 4,
-        fontWeight: '500',
+        fontFamily: 'Inter-Medium',
     },
 });

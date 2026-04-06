@@ -22,7 +22,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     headerTitle: {
         color: "#fff",
         fontSize: 36,
-        fontWeight: "bold",
+        fontFamily: "Montserrat-Bold",
     },
     form: {
         flex: 1,
@@ -31,8 +31,8 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     label: {
         color: currentColors.text,
-        fontWeight: "500",
         marginBottom: 5,
+        fontFamily: "Inter-Medium",
     },
     icon: {
         paddingBottom: 20,
@@ -40,10 +40,11 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     signupText: {
         textAlign: "center",
         color: currentColors.text,
+        fontFamily: "Inter-Regular",
     },
     signupLink: {
         color: currentColors.primary,
-        fontWeight: "bold",
+        fontFamily: "Inter-Bold",
     },
     footer: {
         alignItems: "center",

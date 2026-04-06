@@ -25,7 +25,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     logoutButtonText: {
         color: '#D9534F',
         fontSize: 16,
-        fontWeight: 'bold',
+        fontFamily: 'Inter-Bold',
         marginLeft: 10,
     },
 });
