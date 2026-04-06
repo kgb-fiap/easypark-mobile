@@ -44,7 +44,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
 
     // 1. Invocando os Hooks de Regra de Negócio
     const { location, initialRegion } = useLocation();
-    const { countdown, isActive: isTimerActive, startTimer, stopTimer } = useCountdown(30);
+    const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
 
     // 2. Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
@@ -58,9 +58,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
     const mapRef = useRef<MapView>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current;
     const timerAnim = useRef(new Animated.Value(100)).current; // Controla apenas o aspecto visual (largura)
+    const formatTime = (totalSeconds: number) => {
+        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    };
 
     // --- Efeitos de Ciclo de Vida ---
-    
+
     // Carrega Nome
     useEffect(() => {
         AsyncStorage.getItem(STORAGE_KEYS.USER_NAME)
@@ -97,12 +102,12 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
 
     // Ouve o Timer do Hook para desativar o modal automaticamente
     useEffect(() => {
-        if (isConfirmationVisible && isTimerActive && countdown === 0) {
+        if (isConfirmationVisible && isActive && countdown === 0) {
             setIsConfirmationVisible(false);
             setSelectedSpot(null);
             Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
         }
-    }, [countdown, isTimerActive, isConfirmationVisible]);
+    }, [countdown, isActive, isConfirmationVisible]);
 
     // --- Handlers ---
     const goToMyLocation = () => {
@@ -120,12 +125,12 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
         setSelectedPaymentId(savedPayments.length > 0 ? savedPayments[0].id : null);
         setIsConfirmationVisible(true);
         startTimer(); // Aciona o Hook
-        
+
         // Aciona a animação visual da barra
         timerAnim.setValue(100);
         Animated.timing(timerAnim, {
             toValue: 0,
-            duration: 30000,
+            duration: 300000,
             easing: Easing.linear,
             useNativeDriver: false,
         }).start();
@@ -144,6 +149,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
 
     const handleCancelReservation = () => {
         stopTimer(); // Para o hook
+        timerAnim.stopAnimation();
         setIsConfirmationVisible(false);
     };
 
@@ -203,7 +209,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetAnim }] }]}>
                     <Text style={styles.sheetTitle}>{selectedSpot.title}</Text>
                     <Text style={styles.sheetDescription}>{selectedSpot.description}</Text>
-                    
+
                     <PrimaryButton title="Reservar Vaga" onPress={handleReserveClick} />
                 </Animated.View>
             )}
@@ -267,14 +273,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                                     width: timerAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
                                 }]} />
                             </View>
-                            <Text style={styles.timerText}>Tempo restante: {countdown}s</Text>
+                            <Text style={styles.timerText}>Tempo restante: {formatTime(countdown)}</Text>
                         </View>
 
                         <View style={styles.actionRow}>
                             <TouchableOpacity onPress={handleCancelReservation}>
                                 <Text style={styles.cancelText}>Cancelar</Text>
                             </TouchableOpacity>
-                            
+
                             <PrimaryButton title="Confirmar" onPress={handleConfirmReservation} containerStyle={{ flex: 1, marginLeft: 20 }} />
                         </View>
                     </View>
