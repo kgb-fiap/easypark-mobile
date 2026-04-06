@@ -11,6 +11,7 @@ export type RootStackParamList = {
     UserPreferences: undefined;
     ProfileInfo: undefined;
     PaymentMethods: undefined;
+    PixPayment: undefined;
     Help: undefined;
 };
 

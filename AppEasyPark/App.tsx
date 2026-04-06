@@ -30,7 +30,7 @@ export default function App() {
       SplashScreen.hideAsync();
     } else if (fontError) {
       console.log("ERRO AO CARREGAR FONTES: ", fontError);
-      SplashScreen.hideAsync(); // Esconde a splash mesmo com erro para podermos ver o app
+      SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 

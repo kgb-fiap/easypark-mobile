@@ -109,7 +109,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     confirmationPanel: {
-        height: '70%',
+        height: '80%',
         width: '100%',
         backgroundColor: currentColors.card,
         borderTopLeftRadius: 20,

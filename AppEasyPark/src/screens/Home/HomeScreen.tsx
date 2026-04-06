@@ -141,9 +141,17 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
             Toast.show({ type: 'error', text1: 'Atenção', text2: 'Escolha um método de pagamento.' });
             return;
         }
+        
         stopTimer(); // Para o Hook
-        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
         setIsConfirmationVisible(false);
+
+        // Se for Pix, joga para a tela de pagamento de PIX
+        if (selectedPaymentId === 'pix') {
+            navigation.navigate('PixPayment');
+            return;
+        }
+
+        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
         setSelectedSpot(null);
     };
 
@@ -204,7 +212,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 <Ionicons name="locate" size={24} color={currentColors.text} />
             </TouchableOpacity>
 
-            {/* Painel Inferior de Vaga */}
             {selectedSpot && (
                 <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetAnim }] }]}>
                     <Text style={styles.sheetTitle}>{selectedSpot.title}</Text>
@@ -214,7 +221,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 </Animated.View>
             )}
 
-            {/* Modal de Confirmação (Agora mais limpo usando PrimaryButton) */}
+            {/* Modal de Confirmação */}
             <Modal animationType="slide" transparent={true} visible={isConfirmationVisible} onRequestClose={handleCancelReservation}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmationPanel}>

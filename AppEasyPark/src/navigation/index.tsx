@@ -10,7 +10,8 @@ import SearchScreen from "../screens/Search/SearchScreen";
 import HistoryScreen from "../screens/History/HistoryScreen";
 import SettingsScreen from "../screens/Settings/SettingsScreen";
 import ProfileInfoScreen from "../screens/Profile/ProfileInfoScreen";
-import PaymentMethodsScreen from "../screens/Payment/Methods/PaymentMethodsScreen"
+import PaymentMethodsScreen from "../screens/Payment/Methods/PaymentMethodsScreen";
+import PixPaymentScreen from "../screens/Payment/Pix/PixPaymentScreen";
 import UserPreferencesScreen from "../screens/UserPreferences/UserPreferencesScreen";
 import HelpScreen from "../screens/Help/HelpScreen";
 
@@ -29,6 +30,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="UserPreferences" component={UserPreferencesScreen} />
             <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+            <Stack.Screen name="PixPayment" component={PixPaymentScreen} />
             <Stack.Screen name="ProfileInfo" component={ProfileInfoScreen} />
             <Stack.Screen name="Help" component={HelpScreen} />
         </Stack.Navigator>
