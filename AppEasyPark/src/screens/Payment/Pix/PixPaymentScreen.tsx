@@ -11,6 +11,7 @@ import { getStyles } from './styles';
 
 import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
 import { useCountdown } from '../../../hooks/useCountdown';
+import { formatTime } from '../../../utils/formatters';
 
 // Código Pix fictício para teste
 const MOCK_PIX_CODE = "00020126580014br.gov.bcb.pix0136a1f4102e-a446-4a4a-9d22-97b7642732955204000053039865802BR5925AppEstacionamento6009SAOPAULO62070503***63041A2B";
@@ -35,13 +36,6 @@ const PixPaymentScreen: React.FC<RootStackScreenProps<'PixPayment'>> = ({ naviga
             navigation.goBack();
         }
     }, [countdown, isActive, navigation]);
-
-    // Formata os segundos em MM:SS
-    const formatTime = (seconds: number) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
-    };
 
     // Ação de copiar o código
     const copyToClipboard = async () => {

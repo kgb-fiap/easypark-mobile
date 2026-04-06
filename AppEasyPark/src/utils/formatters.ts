@@ -23,3 +23,16 @@ export const formatNominatimAddress = (addr: NominatimAddress): { line1: string,
     }
     return { line1: line1Clean, line2: line2Clean };
 };
+
+/**
+ * Formata um número de segundos para o padrão MM:SS (ex: 300 -> "5:00")
+ */
+export const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    // Adiciona um '0' à esquerda se os segundos forem menores que 10
+    const formattedSeconds = remainingSeconds < 10 ? `0${remainingSeconds}` : remainingSeconds;
+    
+    return `${minutes}:${formattedSeconds}`;
+};

@@ -109,13 +109,24 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     confirmationPanel: {
-        height: '80%',
         width: '100%',
         backgroundColor: currentColors.card,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 25,
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        paddingHorizontal: 25,
+        paddingTop: 30,
+        paddingBottom: 40,
+    },
+    modalHeader: {
         alignItems: 'center',
+        marginBottom: 25, 
+    },
+    paymentSection: {
+        width: '100%',
+        marginBottom: 25,
+    },
+    footerSection: {
+        width: '100%',
     },
     pickerLabel: {
         fontSize: 14,
@@ -125,20 +136,17 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
         width: '100%',
         fontFamily: 'Inter-Regular',
     },
-    paymentList: {
+    paymentContainer: {
         width: '100%',
-        maxHeight: 150,
-        marginBottom: 25,
     },
     pickerButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12, // Aumentei um pouco para melhor área de toque
+        paddingHorizontal: 15,
         borderWidth: 1,
         borderColor: currentColors.border,
-        borderRadius: 8,
-        marginHorizontal: 4,
+        borderRadius: 10,
         marginBottom: 10,
     },
     pickerButtonSelected: {
@@ -157,8 +165,8 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     paymentRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 10,
-        marginHorizontal: -4,
+        marginTop: 5,
+        gap: 10,
     },
     halfPickerButton: {
         flex: 1,
@@ -192,7 +200,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     timerContainer: {
         width: '100%',
         alignItems: 'center',
-        marginTop: 20,
+        marginBottom: 20,
     },
     timerBarBackground: {
         height: 8,
@@ -208,7 +216,7 @@ export const getStyles = (currentColors: ThemeColors, theme: ThemeName) => Style
     },
     timerText: {
         fontSize: 14,
-        color: currentColors.muted,
+        color: currentColors.text,
         marginTop: 5,
         fontFamily: 'Inter-Medium',
     },

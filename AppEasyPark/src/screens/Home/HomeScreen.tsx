@@ -23,6 +23,7 @@ import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { useLocation } from '../../hooks/useLocation';
 import { useCountdown } from '../../hooks/useCountdown';
 import { STORAGE_KEYS } from '../../utils/constants';
+import { formatTime } from '../../utils/formatters';
 
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
@@ -58,11 +59,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
     const mapRef = useRef<MapView>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current;
     const timerAnim = useRef(new Animated.Value(100)).current; // Controla apenas o aspecto visual (largura)
-    const formatTime = (totalSeconds: number) => {
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
-    };
 
     // --- Efeitos de Ciclo de Vida ---
 
@@ -141,7 +137,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
             Toast.show({ type: 'error', text1: 'Atenção', text2: 'Escolha um método de pagamento.' });
             return;
         }
-        
+
         stopTimer(); // Para o Hook
         setIsConfirmationVisible(false);
 
@@ -221,75 +217,85 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 </Animated.View>
             )}
 
-            {/* Modal de Confirmação */}
+            {/* Modal de Confirmação Refatorado */}
             <Modal animationType="slide" transparent={true} visible={isConfirmationVisible} onRequestClose={handleCancelReservation}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmationPanel}>
-                        <Text style={styles.sheetTitle}>Confirmar Reserva?</Text>
-                        <Text style={styles.sheetDescription}>{selectedSpot?.title}</Text>
-                        <Text style={styles.sheetSubText}>Chegue em 15 minutos para garantir.</Text>
 
-                        <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
-                        <ScrollView style={styles.paymentList} nestedScrollEnabled={true}>
-                            {savedPayments.map(card => {
-                                const isSelected = selectedPaymentId === card.id;
-                                return (
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.sheetTitle}>Confirmar Reserva?</Text>
+                            <Text style={styles.sheetDescription}>{selectedSpot?.title}</Text>
+                            <Text style={styles.sheetSubText}>Chegue em 15 minutos para garantir.</Text>
+                        </View>
+
+                        <View style={styles.paymentSection}>
+                            <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
+                            <View style={styles.paymentContainer}>
+
+                                {/* Mostrando no máximo os 2 últimos cartões*/}
+                                {savedPayments.slice(0, 2).map(card => {
+                                    const isSelected = selectedPaymentId === card.id;
+                                    return (
+                                        <TouchableOpacity
+                                            key={card.id}
+                                            style={[styles.pickerButton, isSelected && styles.pickerButtonSelected]}
+                                            onPress={() => setSelectedPaymentId(card.id)}
+                                        >
+                                            <Ionicons name="card" size={20} color={isSelected ? '#fff' : currentColors.primary} />
+                                            <Text style={[styles.pickerButtonText, isSelected && styles.pickerButtonTextSelected]}>
+                                                {`${card.brand} •••• ${card.last4}`}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+
+                                <View style={styles.paymentRow}>
                                     <TouchableOpacity
-                                        key={card.id}
-                                        style={[styles.pickerButton, isSelected && styles.pickerButtonSelected]}
-                                        onPress={() => setSelectedPaymentId(card.id)}
+                                        style={[styles.halfPickerButton, selectedPaymentId === 'pix' && styles.pickerButtonSelected]}
+                                        onPress={() => setSelectedPaymentId('pix')}
                                     >
-                                        <Ionicons name="card" size={18} color={isSelected ? '#fff' : currentColors.primary} />
-                                        <Text style={[styles.pickerButtonText, isSelected && styles.pickerButtonTextSelected]}>
-                                            {`${card.brand} •••• ${card.last4}`}
-                                        </Text>
+                                        <FontAwesome6 name="pix" size={18} color={selectedPaymentId === 'pix' ? '#fff' : currentColors.primary} />
+                                        <Text style={[styles.pickerButtonText, selectedPaymentId === 'pix' && styles.pickerButtonTextSelected]}>Pix</Text>
                                     </TouchableOpacity>
-                                );
-                            })}
 
-                            <View style={styles.paymentRow}>
-                                <TouchableOpacity
-                                    style={[styles.halfPickerButton, selectedPaymentId === 'pix' && styles.pickerButtonSelected]}
-                                    onPress={() => setSelectedPaymentId('pix')}
-                                >
-                                    <FontAwesome6 name="pix" size={18} color={selectedPaymentId === 'pix' ? '#fff' : currentColors.primary} />
-                                    <Text style={[styles.pickerButtonText, selectedPaymentId === 'pix' && styles.pickerButtonTextSelected]}>Pix</Text>
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.halfPickerButton, selectedPaymentId === 'dinheiro' && styles.pickerButtonSelected]}
+                                        onPress={() => setSelectedPaymentId('dinheiro')}
+                                    >
+                                        <Ionicons name="cash-outline" size={20} color={selectedPaymentId === 'dinheiro' ? '#fff' : currentColors.primary} />
+                                        <Text style={[styles.pickerButtonText, selectedPaymentId === 'dinheiro' && styles.pickerButtonTextSelected]}>Dinheiro</Text>
+                                    </TouchableOpacity>
+                                </View>
 
                                 <TouchableOpacity
-                                    style={[styles.halfPickerButton, selectedPaymentId === 'dinheiro' && styles.pickerButtonSelected]}
-                                    onPress={() => setSelectedPaymentId('dinheiro')}
+                                    style={styles.addButton}
+                                    onPress={() => { setIsConfirmationVisible(false); navigation.navigate('PaymentMethods'); }}
                                 >
-                                    <Ionicons name="cash-outline" size={18} color={selectedPaymentId === 'dinheiro' ? '#fff' : currentColors.primary} />
-                                    <Text style={[styles.pickerButtonText, selectedPaymentId === 'dinheiro' && styles.pickerButtonTextSelected]}>Dinheiro</Text>
+                                    <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
+                                    <Text style={styles.addButtonText}>Adicionar novo cartão</Text>
                                 </TouchableOpacity>
                             </View>
+                        </View>
 
-                            <TouchableOpacity
-                                style={styles.addButton}
-                                onPress={() => { setIsConfirmationVisible(false); navigation.navigate('PaymentMethods'); }}
-                            >
-                                <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
-                                <Text style={styles.addButtonText}>Adicionar novo cartão</Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-
-                        <View style={styles.timerContainer}>
-                            <View style={styles.timerBarBackground}>
-                                <Animated.View style={[styles.timerBarForeground, {
-                                    width: timerAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
-                                }]} />
+                        <View style={styles.footerSection}>
+                            <View style={styles.timerContainer}>
+                                <View style={styles.timerBarBackground}>
+                                    <Animated.View style={[styles.timerBarForeground, {
+                                        width: timerAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
+                                    }]} />
+                                </View>
+                                <Text style={styles.timerText}>Tempo restante: {formatTime(countdown)}</Text>
                             </View>
-                            <Text style={styles.timerText}>Tempo restante: {formatTime(countdown)}</Text>
+
+                            <View style={styles.actionRow}>
+                                <TouchableOpacity onPress={handleCancelReservation}>
+                                    <Text style={styles.cancelText}>Cancelar</Text>
+                                </TouchableOpacity>
+
+                                <PrimaryButton title="Confirmar" onPress={handleConfirmReservation} containerStyle={{ flex: 1, marginLeft: 15 }} />
+                            </View>
                         </View>
 
-                        <View style={styles.actionRow}>
-                            <TouchableOpacity onPress={handleCancelReservation}>
-                                <Text style={styles.cancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-
-                            <PrimaryButton title="Confirmar" onPress={handleConfirmReservation} containerStyle={{ flex: 1, marginLeft: 20 }} />
-                        </View>
                     </View>
                 </View>
             </Modal>
