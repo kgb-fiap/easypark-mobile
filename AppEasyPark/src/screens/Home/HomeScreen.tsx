@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View, Text, TouchableOpacity, ActivityIndicator,
-    Animated, Easing, Modal, ScrollView, BackHandler, StyleSheet
+    Animated, Easing, Modal, ScrollView, BackHandler,
+    StyleSheet, Linking, Platform
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import { getStyles } from './styles';
 // Componentes e Hooks Reutilizáveis
 import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
 import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
+import { ActiveJourneyCard } from '../../components/ActiveJourneyCard/ActiveJourneyCard';
 import { useLocation } from '../../hooks/useLocation';
 import { useCountdown } from '../../hooks/useCountdown';
 import { STORAGE_KEYS } from '../../utils/constants';
@@ -46,6 +48,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
     // 1. Invocando os Hooks de Regra de Negócio
     const { location, initialRegion } = useLocation();
     const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
+    const { countdown: journeyCountdown, startTimer: startJourneyTimer, stopTimer: stopJourneyTimer } = useCountdown(900);
 
     // 2. Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
@@ -54,6 +57,8 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
     const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+    const [isActiveReservation, setIsActiveReservation] = useState(false);
+    const [reservedSpot, setReservedSpot] = useState<any>(null);
 
     // 3. Refs para Animações e Mapa
     const mapRef = useRef<MapView>(null);
@@ -117,6 +122,18 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
         }
     };
 
+    const LATITUDE_OFFSET = 0.003;
+    const goToDestination = () => {
+        if (reservedSpot?.coords) {
+            mapRef.current?.animateToRegion({
+                latitude: reservedSpot.coords.latitude - LATITUDE_OFFSET,
+                longitude: reservedSpot.coords.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+            }, 1000);
+        }
+    };
+
     const handleReserveClick = () => {
         setSelectedPaymentId(savedPayments.length > 0 ? savedPayments[0].id : null);
         setIsConfirmationVisible(true);
@@ -147,12 +164,67 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
             return;
         }
 
+        // Enquadrar estacionamento reservado
+        if (selectedSpot?.coords) {
+            // Subtrair um valor da latitude "puxa" a câmera para o Sul, 
+            // fazendo com que o pino do estacionamento fique na metade de cima da tela!
+            const LATITUDE_OFFSET = 0.003;
+
+            mapRef.current?.animateToRegion({
+                latitude: selectedSpot.coords.latitude - LATITUDE_OFFSET,
+                longitude: selectedSpot.coords.longitude,
+                latitudeDelta: 0.01, // Nível de Zoom
+                longitudeDelta: 0.01,
+            }, 1000); // 1000ms = 1 segundo de animação suave
+        }
+
+        setReservedSpot(selectedSpot); // Salva qual vaga ele escolheu
+        setSelectedSpot(null); // Fecha o BottomSheet antigo
+        setIsActiveReservation(true); // Muda a tela para "Modo Viagem"
+        startJourneyTimer(); // Inicia os 15 minutos
+
         Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
         setSelectedSpot(null);
     };
 
+    const handleNavigateToSpot = () => {
+        if (!reservedSpot?.coords) {
+            Toast.show({ type: 'error', text1: 'Erro', text2: 'Localização do estacionamento não encontrada.' });
+            return;
+        }
+
+        const { latitude, longitude } = reservedSpot.coords;
+        const label = reservedSpot.title || "Estacionamento";
+
+        // Monta a URL (URI Scheme) correta para cada sistema operacional
+        const url = Platform.select({
+            // iOS: Abre o Apple Maps já com a rota traçada para o destino
+            ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(label)}`,
+            // Android: Abre o Google Maps no modo de navegação curva-a-curva
+            android: `google.navigation:q=${latitude},${longitude}`
+        });
+
+        if (url) {
+            Linking.canOpenURL(url).then(supported => {
+                if (supported) {
+                    Linking.openURL(url);
+                } else {
+                    // Fallback: Abre no navegador se o app de mapa não existir
+                    const browserUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+                    Linking.openURL(browserUrl);
+                }
+            }).catch(err => console.error('Erro ao abrir o mapa', err));
+        }
+    };
+
+    const handleCancelJourney = () => {
+        stopJourneyTimer();
+        setIsActiveReservation(false);
+        setReservedSpot(null);
+    };
+
     const handleCancelReservation = () => {
-        stopTimer(); // Para o hook
+        stopTimer();
         timerAnim.stopAnimation();
         setIsConfirmationVisible(false);
     };
@@ -173,15 +245,26 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                     toolbarEnabled={false}
                     onPress={() => setSelectedSpot(null)}
                 >
-                    {parkingSpots.map(spot => (
-                        <Marker
-                            key={spot.id}
-                            identifier={spot.id}
-                            coordinate={spot.coords}
-                            onPress={() => setSelectedSpot(spot)}
-                            image={require('../../../assets/images/parking-icon.png')}
-                        />
-                    ))}
+                    {parkingSpots.map(spot => {
+                        const isTheReservedSpot = reservedSpot?.id === spot.id;
+
+                        return (
+                            <Marker
+                                key={spot.id}
+                                identifier={spot.id}
+                                coordinate={spot.coords}
+
+                                onPress={() => {
+                                    if (!isActiveReservation) {
+                                        setSelectedSpot(spot);
+                                    }
+                                }}
+
+                                image={require('../../../assets/images/parking-icon.png')}
+                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1} // Deixa os outros estacionamentos apagados durante a viagem
+                            />
+                        );
+                    })}
                 </MapView>
             ) : (
                 <View style={styles.mapPlaceholder}>
@@ -197,16 +280,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                     <Ionicons name={theme === 'light' ? 'moon-outline' : 'sunny-outline'} size={24} color="#fff" />
                 </TouchableOpacity>
             </View>
-
-            {/* Barra de Busca e GPS */}
-            <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
-                <Ionicons name="search" size={20} color={currentColors.text} />
-                <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.recenterButton} onPress={goToMyLocation}>
-                <Ionicons name="locate" size={24} color={currentColors.text} />
-            </TouchableOpacity>
 
             {selectedSpot && (
                 <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetAnim }] }]}>
@@ -300,7 +373,38 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 </View>
             </Modal>
 
-            <BottomNavBar currentRoute="Home" />
+            {isActiveReservation ? (
+
+                <ActiveJourneyCard
+                    spotName={reservedSpot?.title || "Estacionamento"}
+                    countdown={journeyCountdown}
+                    onCenterMap={goToDestination}
+
+                    onNavigate={handleNavigateToSpot}
+
+                    onCheckin={() => {
+                        stopJourneyTimer();
+                        setIsActiveReservation(false);
+                        Toast.show({ type: 'success', text1: 'Check-in realizado!', text2: 'Bem-vindo ao estacionamento.' });
+                    }}
+                    onCancel={handleCancelJourney}
+                />
+            ) : (
+                // MODO BUSCA (Padrão): Mostra a barra de busca, botão de GPS e Menu Inferior
+                <>
+                    {/* Barra de Busca e GPS */}
+                    <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
+                        <Ionicons name="search" size={20} color={currentColors.text} />
+                        <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.recenterButton} onPress={goToMyLocation}>
+                        <Ionicons name="locate" size={24} color={currentColors.text} />
+                    </TouchableOpacity>
+
+                    <BottomNavBar currentRoute="Home" />
+                </>
+            )}
         </View>
     );
 };
