@@ -11,16 +11,13 @@ import { useTheme } from '../../../context/ThemeContext';
 import { colors } from '../../../theme/colors';
 import { getStyles } from './styles';
 
-// Components, Hooks, Types e Utils
+// Components e Utils
 import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../../components/CustomInput/CustomInput';
 import { STORAGE_KEYS } from "../../../utils/constants";
 
-const MOCK_USER = {
-    name: "Usuário Teste",
-    email: "teste@teste.com",
-    password: "123",
-};
+// Firebase Auth Service
+import { authService } from '../../../services/firebase/authService';
 
 const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
     const { theme } = useTheme();
@@ -30,29 +27,40 @@ const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) =>
     // --- Estados do Formulário ---
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
+    
+    // --- Estado de Carregamento para a API ---
+    const [isLoading, setIsLoading] = useState(false);
 
-    // --- Lógica de autenticação ---
+    // --- Lógica de autenticação com FIREBASE ---
     const handleLogin = async () => {
         if (!email.trim() || !senha) {
             Toast.show({ type: 'error', text1: 'Erro', text2: 'Por favor, preencha e-mail e senha.' });
             return;
         }
 
+        setIsLoading(true); // Trava o botão para evitar cliques duplos
+
         try {
-            const savedUserJson = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
-            let userToCompare = savedUserJson ? JSON.parse(savedUserJson) : MOCK_USER; 
+            // Chama a função limpa que criamos no authService
+            const { user, error } = await authService.login(email.trim(), senha);
 
-            if (email.toLowerCase() === userToCompare.email.toLowerCase() && senha === userToCompare.password) {
-                await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, userToCompare.name);
-
-                Toast.show({ type: 'success', text1: `Bem-vindo de volta, ${userToCompare.name.split(' ')[0]}!` });
-                setTimeout(() => navigation.navigate("Home"), 1500);
-            } else {
+            if (error) {
+                // Se der erro, o Firebase já nos avisa. Exibimos a mensagem.
                 Toast.show({ type: 'error', text1: 'Erro de Login', text2: 'E-mail ou senha incorretos.' });
+            } else if (user) {
+                // Sucesso! Mantemos a compatibilidade salvando o nome no AsyncStorage 
+                // para o resto do app (Home, Perfil) não quebrar.
+                const userName = user.displayName || 'Usuário';
+                await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, userName);
+
+                Toast.show({ type: 'success', text1: `Bem-vindo de volta, ${userName.split(' ')[0]}!` });
+                setTimeout(() => navigation.navigate("Home"), 1500);
             }
         } catch (e) {
             console.error("Falha ao tentar logar.", e);
             Toast.show({ type: 'error', text1: 'Erro', text2: 'Ocorreu um problema ao tentar fazer login.' });
+        } finally {
+            setIsLoading(false); // Destrava o botão
         }
     };
 
@@ -96,9 +104,11 @@ const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) =>
                             onChangeText={setSenha}
                         />
 
+                        {/* Botão blindado com UX de carregamento */}
                         <PrimaryButton 
-                            title="Entrar" 
+                            title={isLoading ? "Entrando..." : "Entrar"} 
                             onPress={handleLogin} 
+                            disabled={isLoading}
                             containerStyle={{ marginTop: 20, marginBottom: 10 }} 
                         />
 

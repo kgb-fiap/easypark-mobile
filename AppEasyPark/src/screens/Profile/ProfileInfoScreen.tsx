@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -10,7 +10,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { getStyles } from './styles';
 
-// Components, Hooks, Types e Utils
+// Components e Utils
 import { Header } from '../../components/Header/Header';
 import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../components/CustomInput/CustomInput';
@@ -25,15 +25,15 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
 
-    // --- Estados para guardar os valores originais e controlar o botão "Salvar" ---
+    // --- Estados de Controle (UX/UI) ---
     const [originalName, setOriginalName] = useState('');
     const [originalEmail, setOriginalEmail] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     // Carrega os dados do usuário
     useEffect(() => {
         const loadUserData = async () => {
             try {
-                // Utilizando a constante segura
                 const userDataJson = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
                 if (userDataJson !== null) {
                     const userData = JSON.parse(userDataJson);
@@ -43,59 +43,63 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
                     setOriginalEmail(userData.email || '');
                 }
             } catch (e) {
-                console.error("Falha ao carregar dados do usuário", e);
                 Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível carregar seus dados.' });
             }
         };
         loadUserData();
     }, []);
 
-    // Salvar as alterações
+    // Função para salvar as alterações
     const handleSave = async () => {
         if (!name.trim() || !email.trim()) {
-            Toast.show({ type: 'error', text1: 'Campos vazios', text2: 'Nome e e-mail não podem ficar em branco.' });
+            Toast.show({ type: 'error', text1: 'Atenção', text2: 'Os campos não podem ficar vazios.' });
             return;
         }
 
+        setIsLoading(true); // Inicia o loading visual no botão
+
         try {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            /* * FUTURO CÓDIGO FIREBASE AQUI:
+             * await authService.updateUserProfile(name);
+             * if (email !== originalEmail) {
+             * await authService.updateUserEmail(email);
+             * }
+             */
+
+            // --- LÓGICA ATUAL (Mock AsyncStorage) ---
             const currentCreds = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
             const password = currentCreds ? JSON.parse(currentCreds).password : '';
-
             const updatedUserData = { name, email, password };
 
-            // Salvando com as constantes
             await AsyncStorage.setItem(STORAGE_KEYS.USER_CREDENTIALS, JSON.stringify(updatedUserData));
             await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
+            // ----------------------------------------
 
             setOriginalName(name);
             setOriginalEmail(email);
 
-            Toast.show({ type: 'success', text1: 'Sucesso!', text2: 'Informações salvas.' });
-        } catch (e) {
-            console.error("Falha ao salvar dados do usuário", e);
-            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível salvar as alterações.' });
+            Toast.show({ type: 'success', text1: 'Sucesso!', text2: 'Suas informações foram atualizadas.' });
+        } catch (e: any) {
+            Toast.show({ type: 'error', text1: 'Erro ao salvar', text2: e.message || 'Tente novamente mais tarde.' });
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    // Ação Nuclear de Limpeza
     const handleAppReset = () => {
         Alert.alert(
             "Resetar Aplicativo?",
-            "Isso apagará TODOS os dados salvos (usuário, tema, cartões). Ação irreversível.",
+            "Isso apagará TODOS os dados salvos. Ação irreversível.",
             [
                 { text: "Cancelar", style: "cancel" },
                 { 
                     text: "Resetar", 
                     style: "destructive", 
                     onPress: async () => {
-                        try {
-                            await AsyncStorage.clear(); 
-                            Toast.show({ type: 'success', text1: 'App Resetado!', text2: 'Reinicie o aplicativo.' });
-                            navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
-                        } catch (e) {
-                            console.error("Falha ao resetar o app.", e);
-                            Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível resetar o app.' });
-                        }
+                        await AsyncStorage.clear(); 
+                        navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
                     }
                 }
             ]
@@ -106,10 +110,33 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
 
     return (
         <View style={styles.container}>
-            {/* Cabeçalho Reutilizável */}
-            <Header title="Informações de Perfil" />
+            <Header title="Perfil" />
 
-            <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                contentContainerStyle={[styles.scrollContainer, { flexGrow: 1, paddingBottom: 40 }]} 
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                automaticallyAdjustKeyboardInsets={true} // Ajuda o iOS a lidar com o teclado
+            >
+                
+                <View style={{ alignItems: 'center', marginBottom: 30, marginTop: 20 }}>
+                    <View style={{ 
+                        width: 100, height: 100, borderRadius: 50, 
+                        backgroundColor: currentColors.primary + '20', 
+                        justifyContent: 'center', alignItems: 'center',
+                        borderWidth: 2, borderColor: currentColors.primary
+                    }}>
+                        <Text style={{ fontSize: 40, fontFamily: 'Montserrat-Bold', color: currentColors.primary }}>
+                            {name ? name.charAt(0).toUpperCase() : 'U'}
+                        </Text>
+                    </View>
+                    <TouchableOpacity style={{ marginTop: 10 }}>
+                        <Text style={{ color: currentColors.primary, fontFamily: 'Inter-Medium', fontSize: 14, paddingVertical: 4 }}>
+                            Alterar foto
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
                 <CustomInput
                     label="Nome Completo"
                     placeholder="Seu nome completo"
@@ -127,13 +154,13 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
                 />
 
                 <PrimaryButton 
-                    title="Salvar Alterações" 
+                    title={isLoading ? "Salvando..." : "Salvar Alterações"} 
                     onPress={handleSave} 
-                    disabled={!hasChanges} 
+                    disabled={!hasChanges || isLoading} 
                     containerStyle={{ marginTop: 20 }}
                 />
 
-                {/* Botão de Reset Dev */}
+                {/* Botão de reset (Dev) */}
                 {__DEV__ && (
                     <TouchableOpacity style={styles.resetButton} onPress={handleAppReset}>
                         <Ionicons name="nuclear-outline" size={20} color="#FFC107" />

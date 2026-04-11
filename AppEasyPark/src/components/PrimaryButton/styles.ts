@@ -25,5 +25,6 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         color: "#ffffff",
         fontSize: 16,
         fontFamily: "Inter-Bold",
+        paddingVertical: 2
     },
 });

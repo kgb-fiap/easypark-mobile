@@ -10,11 +10,14 @@ import { RootStackScreenProps } from "../../../navigation/types";
 import { useTheme } from '../../../context/ThemeContext';
 import { colors } from '../../../theme/colors';
 import { getStyles } from './styles';
-import { STORAGE_KEYS } from "../../../utils/constants";
 
-// Components
+// Components e Utils
 import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../../components/CustomInput/CustomInput';
+import { STORAGE_KEYS } from "../../../utils/constants";
+
+// Firebase Auth Service
+import { authService } from '../../../services/firebase/authService';
 
 const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
     const { theme } = useTheme();
@@ -22,64 +25,65 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
     const styles = getStyles(currentColors);
 
     // --- Estados do Formulário ---
-    // Note que removemos os estados 'mostrarSenha', pois o CustomInput cuida disso.
     const [nome, setNome] = useState("");
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
-    const [confSenha, setConfSenha] = useState("");
+    const [confirmarSenha, setConfirmarSenha] = useState("");
+    
+    // --- Estado de Carregamento para a API ---
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Função para realizar o cadastro
+    // --- Lógica de Criação de Conta com FIREBASE ---
     const handleRegister = async () => {
-        // 1. Valida se os campos não estão vazios
-        if (!nome.trim() || !email.trim() || !senha || !confSenha) {
-            Toast.show({
-                type: 'error',
-                text1: 'Campos Incompletos',
-                text2: 'Por favor, preencha todos os campos.',
-                position: 'top',
-            });
+        // 1. Validações
+        if (!nome.trim() || !email.trim() || !senha || !confirmarSenha) {
+            Toast.show({ type: 'error', text1: 'Atenção', text2: 'Por favor, preencha todos os campos.' });
             return;
         }
 
-        // 2. Valida o formato do nome
-        if (/\d/.test(nome)) {
-            return; // Se quiser, pode adicionar um Toast aqui avisando sobre nomes com números
-        }
-
-        // 3. Valida se as senhas coincidem
-        if (senha !== confSenha) {
-            Toast.show({
-                type: 'error',
-                text1: 'Senhas diferentes',
-                text2: 'Os campos de senhas não coincidem.',
-                position: 'top',
-            });
+        if (senha !== confirmarSenha) {
+            Toast.show({ type: 'error', text1: 'Senhas divergentes', text2: 'A confirmação de senha falhou.' });
             return;
         }
+
+        if (senha.length < 6) {
+            Toast.show({ type: 'error', text1: 'Senha fraca', text2: 'A senha deve ter no mínimo 6 caracteres.' });
+            return;
+        }
+
+        setIsLoading(true); // Trava o botão e mostra feedback visual
 
         try {
-            const user = { name: nome, email: email, password: senha };
+            // 2. Chama a função de registro do nosso serviço (Que já cria a conta e salva o nome no perfil do Firebase)
+            const { user, error } = await authService.register(email.trim(), senha, nome.trim());
 
-            // Usando a constante centralizada para evitar erros
-            await AsyncStorage.setItem(STORAGE_KEYS.USER_CREDENTIALS, JSON.stringify(user));
-            await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, nome);
+            if (error) {
+                // Tratamento amigável para erros comuns do Firebase
+                let errorMessage = 'Não foi possível criar a conta.';
+                if (error.includes('email-already-in-use')) errorMessage = 'Este e-mail já está cadastrado.';
+                if (error.includes('invalid-email')) errorMessage = 'Formato de e-mail inválido.';
+                
+                Toast.show({ type: 'error', text1: 'Erro no Cadastro', text2: errorMessage });
+            } else if (user) {
+                // 3. O Firebase já loga o usuário automaticamente após criar a conta.
+                // Salvamos o nome localmente para a Home Screen exibir o "Olá, Nome".
+                await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, nome.trim());
 
-            Toast.show({
-                type: 'success',
-                text1: `Bem-vindo, ${nome.split(' ')[0]}!`,
-                text2: `Cadastro realizado com sucesso!`,
-                position: 'top',
-            });
-
-            setTimeout(() => navigation.navigate("Home"), 1500);
+                Toast.show({ type: 'success', text1: 'Conta criada!', text2: 'Bem-vindo ao aplicativo.' });
+                
+                // Limpa o histórico de navegação e joga direto para a Home
+                setTimeout(() => {
+                    navigation.reset({
+                        index: 0,
+                        routes: [{ name: 'Home' }],
+                    });
+                }, 1500);
+            }
         } catch (e) {
-            console.error("Falha ao salvar o nome.", e);
-            Toast.show({
-                type: 'error',
-                text1: 'Erro',
-                text2: 'Não foi possível salvar os dados do usuário.',
-                position: 'top',
-            });
+            console.error("Falha ao tentar registrar.", e);
+            Toast.show({ type: 'error', text1: 'Erro Crítico', text2: 'Ocorreu um problema inesperado.' });
+        } finally {
+            setIsLoading(false); // Destrava o botão
         }
     };
 
@@ -92,9 +96,8 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
                     extraScrollHeight={60}
                     showsVerticalScrollIndicator={false}
                 >
-
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.navigate("Welcome")}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Ionicons
                                 name={"return-down-back"}
                                 size={26}
@@ -102,17 +105,17 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
                                 color="#ffffffff"
                             />
                         </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Cadastro</Text>
+                        <Text style={styles.headerTitle}>Criar Conta</Text>
                     </View>
 
+                    {/* Formulário */}
                     <View style={styles.form}>
                         <CustomInput
-                            label="Nome completo"
-                            placeholder="Digite seu nome completo"
-                            keyboardType="default"
+                            label="Nome Completo"
+                            placeholder="Digite seu nome"
                             autoCapitalize="words"
                             value={nome}
-                            onChangeText={(text) => setNome(text.replace(/[0-9]/g, ''))}
+                            onChangeText={setNome}
                         />
 
                         <CustomInput
@@ -126,33 +129,31 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
 
                         <CustomInput
                             label="Senha"
-                            placeholder="Digite sua senha"
+                            placeholder="Crie uma senha (mín. 6 caracteres)"
                             isPassword={true}
                             value={senha}
                             onChangeText={setSenha}
                         />
 
                         <CustomInput
-                            label="Confirme sua senha"
-                            placeholder="Confirme sua senha"
+                            label="Confirmar Senha"
+                            placeholder="Digite a senha novamente"
                             isPassword={true}
-                            value={confSenha}
-                            onChangeText={setConfSenha}
+                            value={confirmarSenha}
+                            onChangeText={setConfirmarSenha}
                         />
 
                         <PrimaryButton 
-                            title="Cadastrar" 
+                            title={isLoading ? "Criando conta..." : "Cadastrar"} 
                             onPress={handleRegister} 
+                            disabled={isLoading}
                             containerStyle={{ marginTop: 20, marginBottom: 10 }} 
                         />
 
                         <Text style={styles.signupText}>
                             Já possui uma conta?{" "}
-                            <Text
-                                style={styles.signupLink}
-                                onPress={() => navigation.navigate("Login")}
-                            >
-                                Faça o login
+                            <Text style={styles.signupLink} onPress={() => navigation.navigate("Login")}>
+                                Fazer Login
                             </Text>
                         </Text>
                     </View>

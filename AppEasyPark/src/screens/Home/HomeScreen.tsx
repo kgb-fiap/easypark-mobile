@@ -11,14 +11,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
 import MapView, { Marker, Circle, MarkerPressEvent } from 'react-native-maps';
 
-// Arquitetura e Contexto
+// Navigation e Context
 import { RootStackScreenProps } from "../../navigation/types";
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { lightMapStyle, darkMapStyle } from '../../theme/mapStyles';
 import { getStyles } from './styles';
 
-// Componentes e Hooks Reutilizáveis
+// Components e Utils
 import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
 import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { ActiveJourneyCard } from '../../components/ActiveJourneyCard/ActiveJourneyCard';
