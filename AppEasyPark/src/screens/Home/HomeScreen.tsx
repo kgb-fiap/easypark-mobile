@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import MapView, { Marker, MarkerPressEvent } from 'react-native-maps';
+import MapView, { Marker, Circle, MarkerPressEvent } from 'react-native-maps';
 
 // Arquitetura e Contexto
 import { RootStackScreenProps } from "../../navigation/types";
@@ -24,8 +24,8 @@ import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { ActiveJourneyCard } from '../../components/ActiveJourneyCard/ActiveJourneyCard';
 import { useLocation } from '../../hooks/useLocation';
 import { useCountdown } from '../../hooks/useCountdown';
-import { STORAGE_KEYS } from '../../utils/constants';
 import { formatTime } from '../../utils/formatters';
+import { STORAGE_KEYS } from '../../utils/constants';
 
 const MOCK_PARKING_SPOTS = [
     { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
@@ -40,7 +40,8 @@ interface PaymentItem {
     last4?: string;
 }
 
-const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
+const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route }) => {
+
     const { theme, toggleTheme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
@@ -53,6 +54,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
     // 2. Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
     const [parkingSpots, setParkingSpots] = useState(MOCK_PARKING_SPOTS);
+    const [searchCenter, setSearchCenter] = useState<{ latitude: number, longitude: number } | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
@@ -119,6 +121,9 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                 latitudeDelta: 0.02,
                 longitudeDelta: 0.01,
             }, 1000);
+
+            setParkingSpots(MOCK_PARKING_SPOTS); // Reseta o filtro mostrando todos os estacionamentos novamente
+            setSearchCenter(null); // Limpa o ponto verde e o círculo do mapa
         }
     };
 
@@ -229,6 +234,109 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
         setIsConfirmationVisible(false);
     };
 
+    // Algoritmo de Haversine: Calcula a distância em KM entre duas coordenadas geográficas
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+        const R = 6371; // Raio da Terra em km
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c; // Distância em quilômetros
+    };
+
+    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 5km ---
+    useEffect(() => {
+        if (route.params?.selectedSpotParams?.coords) {
+            const { latitude, longitude } = route.params.selectedSpotParams.coords;
+            
+            // 1. Damos um "respiro" para a tela terminar de abrir
+            setTimeout(() => {
+                // 2. Move a câmera com um zoom equilibrado para caber o raio de 5km
+                if (mapRef.current) {
+                    mapRef.current.animateToRegion({
+                        latitude: latitude,
+                        longitude: longitude,
+                        latitudeDelta: 0.05, // Delta ideal para o raio de visão de 5km
+                        longitudeDelta: 0.05,
+                    }, 1000); 
+                }
+
+                // 3. NOVO: Salva o centro da busca para desenhar o ponto e o círculo
+                setSearchCenter({ latitude, longitude });
+
+                // 4. A MÁGICA DO RAIO DE 5KM (Lógica de Haversine continua aqui)
+                const spotsNearby = MOCK_PARKING_SPOTS.filter(spot => {
+                    const distance = calculateDistance(
+                        latitude, longitude,
+                        spot.coords.latitude, spot.coords.longitude
+                    );
+                    return distance <= 5; 
+                });
+
+                // 5. Atualiza o estado para renderizar apenas esses pinos no mapa
+                setParkingSpots(spotsNearby);
+
+                // 6. Feedback visual (Toast) continua aqui...
+                if (spotsNearby.length === 0) {
+                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 5km.' });
+                } else {
+                    Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
+                }
+
+                setTimeout(() => {
+                    navigation.setParams({ selectedSpotParams: undefined });
+                }, 1500);
+
+            }, 400); 
+        }
+    }, [route.params?.selectedSpotParams]);
+
+    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 5km ---
+    useEffect(() => {
+        if (route.params?.selectedSpotParams?.coords) {
+            const { latitude, longitude } = route.params.selectedSpotParams.coords;
+            
+            setTimeout(() => {
+                // 1. Move a câmera com um zoom um pouco mais aberto para caber os 5km
+                if (mapRef.current) {
+                    mapRef.current.animateToRegion({
+                        latitude: latitude,
+                        longitude: longitude,
+                        latitudeDelta: 0.04, // Aumentei o Delta para o raio de visão ficar maior
+                        longitudeDelta: 0.04,
+                    }, 1000); 
+                }
+
+                // 2. A MÁGICA DO RAIO DE 5KM
+                const spotsNearby = MOCK_PARKING_SPOTS.filter(spot => {
+                    const distance = calculateDistance(
+                        latitude, longitude,
+                        spot.coords.latitude, spot.coords.longitude
+                    );
+                    return distance <= 5; // Mantém apenas quem estiver a 5km ou menos
+                });
+
+                // 3. Atualiza o estado para renderizar apenas esses pinos no mapa
+                setParkingSpots(spotsNearby);
+
+                // 4. Feedback visual para o usuário
+                if (spotsNearby.length === 0) {
+                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 5km.' });
+                } else {
+                    Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
+                }
+
+                setTimeout(() => {
+                    navigation.setParams({ selectedSpotParams: undefined });
+                }, 1500);
+
+            }, 400); 
+        }
+    }, [route.params?.selectedSpotParams]);
+
     return (
         <View style={styles.container}>
 
@@ -245,6 +353,29 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                     toolbarEnabled={false}
                     onPress={() => setSelectedSpot(null)}
                 >
+                    {/* CAMADA 1 (NOVA): Ponto Verde exato do destino pesquisado */}
+                    {searchCenter && (
+                        <Marker 
+                            coordinate={searchCenter}
+                            // Usamos um pino verde nativo para o MVP, depois podemos trocar por um ícone customizado
+                            pinColor="#03BB85" 
+                            title="Destino Pesquisado"
+                        />
+                    )}
+
+                    {/* CAMADA 2 (NOVA): Esfera Verde Transparente de 5km de Raio */}
+                    {searchCenter && (
+                        <Circle 
+                            center={searchCenter}
+                            radius={1000} // Raio de 5km
+                            strokeColor="rgba(3, 187, 133, 0.5)" 
+                            strokeWidth={2}
+                            // Cor do preenchimento: Um verde clarinho e BEM transparente (alpha 0.2)
+                            fillColor="rgba(3, 187, 133, 0.2)" 
+                        />
+                    )}
+
+                    {/* CAMADA 3: Pinos dos Estacionamentos (Código original continua aqui) */}
                     {parkingSpots.map(spot => {
                         const isTheReservedSpot = reservedSpot?.id === spot.id;
 
@@ -253,15 +384,13 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation }) => {
                                 key={spot.id}
                                 identifier={spot.id}
                                 coordinate={spot.coords}
-
                                 onPress={() => {
                                     if (!isActiveReservation) {
                                         setSelectedSpot(spot);
                                     }
                                 }}
-
                                 image={require('../../../assets/images/parking-icon.png')}
-                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1} // Deixa os outros estacionamentos apagados durante a viagem
+                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1} 
                             />
                         );
                     })}

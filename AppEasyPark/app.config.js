@@ -19,6 +19,9 @@ export default {
       "bundleIdentifier": "com.appeasypark",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para mostrar os estacionamentos próximos a você."
+      },
+      "config": {
+        "googleMapsApiKey": process.env.GOOGLE_MAPS_API_KEY
       }
     },
     "android": {
@@ -39,7 +42,8 @@ export default {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-location"
     ]
   }
 };

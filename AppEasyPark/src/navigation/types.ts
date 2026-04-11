@@ -4,7 +4,16 @@ export type RootStackParamList = {
     Welcome: undefined;
     Login: undefined;
     Register: undefined;
-    Home: undefined;
+    Home: {
+        selectedSpotParams?: {
+            id: string;
+            type?: string;
+            status?: string;
+            label?: string;
+            x?: number; y?: number; width?: number; height?: number;
+            coords: { latitude: number; longitude: number }
+        }
+    } | undefined;
     Search: undefined;
     History: undefined;
     Settings: undefined;

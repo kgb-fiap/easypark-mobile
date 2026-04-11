@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, ListRenderItemInfo } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Keyboard, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 
 // Navigation e Context
 import { RootStackScreenProps } from '../../navigation/types';
@@ -9,30 +10,27 @@ import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { getStyles } from './styles';
 
-// Componentes, Hooks and Utils
+// Componentes e Utils
 import { Header } from '../../components/Header/Header';
-import { useDebounce } from '../../hooks/useDebounce';
-import { formatNominatimAddress } from '../../utils/formatters';
 import { STORAGE_KEYS } from '../../utils/constants';
-import { NominatimResult, RecentSearchItem, SearchListItem } from '../../types/models';
+import { RecentSearchItem } from '../../types/models';
+
+const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+
+// Pegamos a largura real da tela para criar uma trava de segurança intransponível
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) => {
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
 
-    // --- Estados ---
-    const [destinationQuery, setDestinationQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
     const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const googleRef = useRef<GooglePlacesAutocompleteRef>(null);
 
-    const destinationInputRef = useRef<TextInput>(null);
-
-    // Aplicando o Hook: Atraso de 600ms após o usuário parar de digitar
-    const debouncedQuery = useDebounce(destinationQuery, 600);
-
-    // Carrega buscas recentes ao iniciar
+    // Carrega buscas recentes e escuta o teclado
     useEffect(() => {
         const loadRecentSearches = async () => {
             try {
@@ -43,144 +41,160 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
             }
         };
         loadRecentSearches();
-        setTimeout(() => destinationInputRef.current?.focus(), 150);
+
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
+
+        setTimeout(() => googleRef.current?.focus(), 200);
+
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+        };
     }, []);
 
-    // Efeito limpo que reage apenas ao hook de debounce
-    useEffect(() => {
-        if (debouncedQuery.trim().length >= 3) {
-            handleSearch(debouncedQuery);
-        } else {
-            setSearchResults([]); // Limpa os resultados se o texto for menor que 3 chars
-            setIsLoading(false);
-        }
-    }, [debouncedQuery]);
+    const handleSelectPlace = async (data: any, details: any) => {
+        if (!details) return;
 
-    // Função de busca na API
-    const handleSearch = async (query: string) => {
-        setIsLoading(true);
-        try {
-            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&countrycodes=br&limit=10&addressdetails=1`;
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: { 'User-Agent': 'EasyParkApp/1.0 (seuemail@dominio.com)' }
-            });
-            const data: NominatimResult[] = await response.json();
-            setSearchResults(data);
-        } catch (error) {
-            console.error('Falha ao buscar endereço:', error);
-            setSearchResults([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const { lat, lng } = details.geometry.location;
+        const placeName = data.structured_formatting?.main_text || data.description;
+        const placeDetails = data.structured_formatting?.secondary_text || '';
 
-    // Salva busca recente
-    const saveRecentSearch = async (item: NominatimResult, line1: string, line2: string) => {
         try {
-            const newRecent: RecentSearchItem = {
-                id: item.place_id,
-                line1: line1 || item.display_name,
-                line2: line2 || ''
-            };
+            const newRecent: RecentSearchItem = { id: data.place_id, line1: placeName, line2: placeDetails };
             const filteredRecents = recentSearches.filter(r => r.id !== newRecent.id);
             const updatedRecents = [newRecent, ...filteredRecents].slice(0, 5);
-
             setRecentSearches(updatedRecents);
             await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(updatedRecents));
-        } catch (e) {
-            console.error("Falha ao salvar busca recente", e);
-        }
+        } catch (e) { }
+
+        navigation.navigate('Home', {
+            selectedSpotParams: {
+                id: data.place_id,
+                type: 'spot',
+                coords: { latitude: lat, longitude: lng }
+            }
+        });
     };
-
-    const renderItem = ({ item }: ListRenderItemInfo<SearchListItem>) => {
-        if (!('address' in item)) {
-            const recent = item as RecentSearchItem;
-            return (
-                <TouchableOpacity
-                    style={styles.resultItem}
-                    onPress={() => {
-                        const fullQuery = [recent.line1, recent.line2].filter(Boolean).join(' ');
-                        setDestinationQuery(fullQuery);
-                    }}
-                >
-                    <Ionicons name="time-outline" size={23} color={currentColors.muted} style={styles.resultIcon} />
-                    <View style={styles.resultTextContainer}>
-                        <Text style={styles.resultNameLine1}>{recent.line1}</Text>
-                        {recent.line2 ? <Text style={styles.resultNameLine2}>{recent.line2}</Text> : null}
-                    </View>
-                </TouchableOpacity>
-            );
-        }
-
-        const result = item as NominatimResult;
-        const { line1, line2 } = formatNominatimAddress(result.address);
-        const displayName = line1 || result.display_name;
-
-        return (
-            <TouchableOpacity style={styles.resultItem} onPress={() => {
-                saveRecentSearch(result, displayName, line2);
-                navigation.goBack(); // Simula a volta para o mapa
-            }}>
-                <Ionicons name="location-outline" size={23} color={currentColors.muted} style={styles.resultIcon} />
-                <View style={styles.resultTextContainer}>
-                    <Text style={styles.resultNameLine1} numberOfLines={1}>{displayName}</Text>
-                    {line2 ? <Text style={styles.resultNameLine2} numberOfLines={1}>{line2}</Text> : null}
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    const isSearching = destinationQuery.trim().length > 0;
-    const dataToShow = isSearching ? searchResults : recentSearches;
-    const listTitle = isSearching ? "Resultados da Busca" : "Buscas Recentes";
 
     return (
         <View style={styles.container}>
-        
             <Header title="Encontre seu estacionamento" />
 
-            <View style={styles.inputArea}>
-                <View style={styles.searchIcon}>
-                    <Ionicons name="search" size={20} color={currentColors.text} />
-                </View>
-                <TextInput
-                    ref={destinationInputRef}
-                    style={styles.input}
-                    placeholder="Vamos estacionar por onde?"
-                    placeholderTextColor={currentColors.muted}
-                    value={destinationQuery}
-                    onChangeText={setDestinationQuery}
-                    autoFocus={true}
-                    returnKeyType="search"
+            <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10 }}>
+                <GooglePlacesAutocomplete
+                    ref={googleRef}
+                    placeholder="Para onde você vai?"
+                    fetchDetails={true}
+                    onPress={handleSelectPlace}
+                    query={{
+                        key: GOOGLE_API_KEY,
+                        language: 'pt-BR',
+                        components: 'country:br',
+                    }}
+                    debounce={400}
+                    minLength={3}
+                    enablePoweredByContainer={false}
+                    textInputProps={{
+                        placeholderTextColor: currentColors.muted,
+                        onChangeText: (text) => setIsTyping(text.length > 0),
+                    }}
+
+                    renderLeftButton={() => (
+                        <View style={{ justifyContent: 'center', alignItems: 'center', paddingLeft: 15, paddingRight: 5 }}>
+                            <Ionicons name="search" size={20} color={currentColors.primary} />
+                        </View>
+                    )}
+
+                    renderRow={(rowData) => (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
+                            <View style={{
+                                width: 40, height: 40, borderRadius: 20,
+                                backgroundColor: currentColors.primary + '15',
+                                justifyContent: 'center', alignItems: 'center', marginRight: 15
+                            }}>
+                                <Ionicons name="location" size={20} color={currentColors.primary} />
+                            </View>
+
+                            <View style={{ flex: 1 }}>
+                                <Text style={{ fontFamily: 'Inter-Bold', fontSize: 16, color: currentColors.text }} numberOfLines={1}>
+                                    {rowData.structured_formatting?.main_text || rowData.description}
+                                </Text>
+                                {rowData.structured_formatting?.secondary_text && (
+                                    <Text style={{ fontFamily: 'Inter-Medium', fontSize: 13, color: currentColors.muted, marginTop: 2 }} numberOfLines={1}>
+                                        {rowData.structured_formatting.secondary_text}
+                                    </Text>
+                                )}
+                            </View>
+                        </View>
+                    )}
+
+                    styles={{
+                        container: { flex: 1 },
+                        textInputContainer: {
+                            backgroundColor: currentColors.card,
+                            borderRadius: 14,
+                            borderWidth: 1,
+                            borderColor: currentColors.border,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            height: 56,
+                            elevation: 4,
+                            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6,
+                        },
+                        textInput: {
+                            flex: 1,
+                            backgroundColor: 'transparent',
+                            color: currentColors.text,
+                            fontSize: 16,
+                            fontFamily: 'Inter-Medium',
+                            height: '100%',
+                            marginTop: 0, marginBottom: 0,
+                        },
+                        listView: { marginTop: 15, backgroundColor: 'transparent' },
+                        row: {
+                            backgroundColor: currentColors.card,
+                            paddingVertical: 12, paddingHorizontal: 15, marginBottom: 8,
+                            borderRadius: 12, borderWidth: 1, borderColor: currentColors.border,
+                            width: SCREEN_WIDTH - 40,
+                        },
+                        separator: { height: 0 }
+                    }}
                 />
-                {destinationQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => {
-                        setDestinationQuery('');
-                        setSearchResults([]);
-                    }} style={styles.clearButton}>
-                        <Ionicons name="close-circle" size={20} color={currentColors.muted} />
-                    </TouchableOpacity>
+                {/* Buscas Recentes */}
+                {!isTyping && recentSearches.length > 0 && (
+                    <View style={{ marginTop: 30, paddingBottom: 20 }}>
+                        <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16, color: currentColors.text, marginBottom: 15 }}>
+                            Buscas Recentes
+                        </Text>
+                        <FlatList
+                            data={recentSearches}
+                            keyExtractor={(item) => item.id}
+                            keyboardShouldPersistTaps="handled"
+                            contentContainerStyle={{ maxWidth: SCREEN_WIDTH - 40 }}
+                            renderItem={({ item }) => (
+                                <TouchableOpacity
+                                    style={{
+                                        flexDirection: 'row', alignItems: 'center',
+                                        paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: currentColors.border,
+                                        width: '100%'
+                                    }}
+                                    onPress={() => {
+                                        googleRef.current?.setAddressText(item.line1);
+                                        googleRef.current?.focus();
+                                    }}
+                                >
+                                    <Ionicons name="time-outline" size={22} color={currentColors.muted} style={{ marginRight: 15 }} />
+                                    <View style={{ flex: 1, overflow: 'hidden' }}>
+                                        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: currentColors.text }} numberOfLines={1}>{item.line1}</Text>
+                                        {item.line2 ? <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: currentColors.muted }} numberOfLines={1}>{item.line2}</Text> : null}
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    </View>
                 )}
             </View>
-
-            <FlatList
-                data={dataToShow}
-                renderItem={renderItem}
-                keyExtractor={(item) => ('address' in item) ? item.place_id : item.id}
-                contentContainerStyle={styles.listContainer}
-                ListHeaderComponent={
-                    <>
-                        {(dataToShow.length > 0 || isLoading) && (
-                            <Text style={styles.listTitle}>{listTitle}</Text>
-                        )}
-                        {isLoading && (
-                            <ActivityIndicator size="large" color={currentColors.primary} style={{ marginVertical: 20 }} />
-                        )}
-                    </>
-                }
-                keyboardShouldPersistTaps="handled"
-            />
         </View>
     );
 };
