@@ -46,15 +46,16 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
 
-    // 1. Invocando os Hooks de Regra de Negócio
+    // Invocando os Hooks de Regra de Negócio
     const { location, initialRegion } = useLocation();
     const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
     const { countdown: journeyCountdown, startTimer: startJourneyTimer, stopTimer: stopJourneyTimer } = useCountdown(900);
 
-    // 2. Estados da UI
+    // Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
     const [parkingSpots, setParkingSpots] = useState(MOCK_PARKING_SPOTS);
     const [searchCenter, setSearchCenter] = useState<{ latitude: number, longitude: number } | null>(null);
+    const [destinationName, setDestinationName] = useState<string | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
@@ -62,7 +63,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const [isActiveReservation, setIsActiveReservation] = useState(false);
     const [reservedSpot, setReservedSpot] = useState<any>(null);
 
-    // 3. Refs para Animações e Mapa
+    // Refs para Animações e Mapa
     const mapRef = useRef<MapView>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current;
     const timerAnim = useRef(new Animated.Value(100)).current; // Controla apenas o aspecto visual (largura)
@@ -124,6 +125,24 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
 
             setParkingSpots(MOCK_PARKING_SPOTS); // Reseta o filtro mostrando todos os estacionamentos novamente
             setSearchCenter(null); // Limpa o ponto verde e o círculo do mapa
+            setDestinationName(null); // Apaga o nome do destino ao limpar o mapa
+        }
+    };
+
+    // Limpar a busca
+    const handleClearDestination = () => {
+        setParkingSpots(MOCK_PARKING_SPOTS); // Volta os pinos ao normal
+        setSearchCenter(null);               // Apaga a esfera verde
+        setDestinationName(null);            // Esconde a barra de destino
+
+        // Se tiver localização, volta a câmera para o usuário
+        if (location) {
+            mapRef.current?.animateToRegion({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.01,
+            }, 1000);
         }
     };
 
@@ -205,7 +224,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         const url = Platform.select({
             // iOS: Abre o Apple Maps já com a rota traçada para o destino
             ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(label)}`,
-            // Android: Abre o Google Maps no modo de navegação curva-a-curva
+            // Android: Abre o Google Maps no modo de navegação
             android: `google.navigation:q=${latitude},${longitude}`
         });
 
@@ -247,41 +266,40 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         return R * c; // Distância em quilômetros
     };
 
-    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 5km ---
+    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 1km ---
     useEffect(() => {
         if (route.params?.selectedSpotParams?.coords) {
             const { latitude, longitude } = route.params.selectedSpotParams.coords;
-            
-            // 1. Damos um "respiro" para a tela terminar de abrir
+
             setTimeout(() => {
-                // 2. Move a câmera com um zoom equilibrado para caber o raio de 5km
                 if (mapRef.current) {
                     mapRef.current.animateToRegion({
                         latitude: latitude,
                         longitude: longitude,
-                        latitudeDelta: 0.05, // Delta ideal para o raio de visão de 5km
-                        longitudeDelta: 0.05,
-                    }, 1000); 
+                        latitudeDelta: 0.04,
+                        longitudeDelta: 0.04,
+                    }, 1000);
                 }
 
-                // 3. NOVO: Salva o centro da busca para desenhar o ponto e o círculo
                 setSearchCenter({ latitude, longitude });
 
-                // 4. A MÁGICA DO RAIO DE 5KM (Lógica de Haversine continua aqui)
+                const labelName = route.params?.selectedSpotParams?.label;
+                if (labelName) {
+                    setDestinationName(labelName);
+                }
+
                 const spotsNearby = MOCK_PARKING_SPOTS.filter(spot => {
                     const distance = calculateDistance(
                         latitude, longitude,
                         spot.coords.latitude, spot.coords.longitude
                     );
-                    return distance <= 5; 
+                    return distance <= 1; // Raio de 1km
                 });
 
-                // 5. Atualiza o estado para renderizar apenas esses pinos no mapa
                 setParkingSpots(spotsNearby);
 
-                // 6. Feedback visual (Toast) continua aqui...
                 if (spotsNearby.length === 0) {
-                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 5km.' });
+                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 1km.' });
                 } else {
                     Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
                 }
@@ -290,50 +308,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     navigation.setParams({ selectedSpotParams: undefined });
                 }, 1500);
 
-            }, 400); 
-        }
-    }, [route.params?.selectedSpotParams]);
-
-    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 5km ---
-    useEffect(() => {
-        if (route.params?.selectedSpotParams?.coords) {
-            const { latitude, longitude } = route.params.selectedSpotParams.coords;
-            
-            setTimeout(() => {
-                // 1. Move a câmera com um zoom um pouco mais aberto para caber os 5km
-                if (mapRef.current) {
-                    mapRef.current.animateToRegion({
-                        latitude: latitude,
-                        longitude: longitude,
-                        latitudeDelta: 0.04, // Aumentei o Delta para o raio de visão ficar maior
-                        longitudeDelta: 0.04,
-                    }, 1000); 
-                }
-
-                // 2. A MÁGICA DO RAIO DE 5KM
-                const spotsNearby = MOCK_PARKING_SPOTS.filter(spot => {
-                    const distance = calculateDistance(
-                        latitude, longitude,
-                        spot.coords.latitude, spot.coords.longitude
-                    );
-                    return distance <= 5; // Mantém apenas quem estiver a 5km ou menos
-                });
-
-                // 3. Atualiza o estado para renderizar apenas esses pinos no mapa
-                setParkingSpots(spotsNearby);
-
-                // 4. Feedback visual para o usuário
-                if (spotsNearby.length === 0) {
-                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 5km.' });
-                } else {
-                    Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
-                }
-
-                setTimeout(() => {
-                    navigation.setParams({ selectedSpotParams: undefined });
-                }, 1500);
-
-            }, 400); 
+            }, 400);
         }
     }, [route.params?.selectedSpotParams]);
 
@@ -353,29 +328,44 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     toolbarEnabled={false}
                     onPress={() => setSelectedSpot(null)}
                 >
-                    {/* CAMADA 1 (NOVA): Ponto Verde exato do destino pesquisado */}
                     {searchCenter && (
-                        <Marker 
+                        <Marker
                             coordinate={searchCenter}
-                            // Usamos um pino verde nativo para o MVP, depois podemos trocar por um ícone customizado
-                            pinColor="#03BB85" 
                             title="Destino Pesquisado"
-                        />
+                            anchor={{ x: 0.5, y: 0.5 }} // Propriedade que garante que o "centro" da bolinha fique exatamente na rua pesquisada
+                        >
+                            <View style={{
+                                width: 36,
+                                height: 36,
+                                backgroundColor: currentColors.primary,
+                                borderRadius: 18,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                borderWidth: 3,
+                                borderColor: '#ffffff',
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 4,
+                                elevation: 5,
+                            }}>
+                                <Ionicons name="flag" size={18} color="#ffffff" />
+                            </View>
+                        </Marker>
                     )}
 
-                    {/* CAMADA 2 (NOVA): Esfera Verde Transparente de 5km de Raio */}
+                    {/* Esfera com raio de 1km */}
                     {searchCenter && (
-                        <Circle 
+                        <Circle
                             center={searchCenter}
-                            radius={1000} // Raio de 5km
-                            strokeColor="rgba(3, 187, 133, 0.5)" 
+                            radius={1000}
+                            strokeColor="rgba(3, 187, 133, 0.4)"
                             strokeWidth={2}
-                            // Cor do preenchimento: Um verde clarinho e BEM transparente (alpha 0.2)
-                            fillColor="rgba(3, 187, 133, 0.2)" 
+                            fillColor="rgba(3, 187, 133, 0.15)"
                         />
                     )}
 
-                    {/* CAMADA 3: Pinos dos Estacionamentos (Código original continua aqui) */}
+                    {/* Pinos dos estacionamentos */}
                     {parkingSpots.map(spot => {
                         const isTheReservedSpot = reservedSpot?.id === spot.id;
 
@@ -390,7 +380,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                                     }
                                 }}
                                 image={require('../../../assets/images/parking-icon.png')}
-                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1} 
+                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1}
                             />
                         );
                     })}
@@ -419,7 +409,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 </Animated.View>
             )}
 
-            {/* Modal de Confirmação Refatorado */}
+            {/* Modal de confirmação */}
             <Modal animationType="slide" transparent={true} visible={isConfirmationVisible} onRequestClose={handleCancelReservation}>
                 <View style={styles.modalOverlay}>
                     <View style={styles.confirmationPanel}>
@@ -503,7 +493,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             </Modal>
 
             {isActiveReservation ? (
-
+                // MODO VIAGEM: Mostra o card de jornada ativa com contagem regressiva, botão de centralizar no mapa, navegação e check-in
                 <ActiveJourneyCard
                     spotName={reservedSpot?.title || "Estacionamento"}
                     countdown={journeyCountdown}
@@ -521,13 +511,33 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             ) : (
                 // MODO BUSCA (Padrão): Mostra a barra de busca, botão de GPS e Menu Inferior
                 <>
-                    {/* Barra de Busca e GPS */}
-                    <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate("Search")}>
-                        <Ionicons name="search" size={20} color={currentColors.text} />
-                        <Text style={styles.searchBarPlaceholder}>Onde sua vaga te espera?</Text>
-                    </TouchableOpacity>
+                    {destinationName ? (
+                        <View style={[styles.searchBar, { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: currentColors.card, borderColor: currentColors.primary, borderWidth: 1 }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
+                                <Ionicons name="flag" size={20} color={currentColors.primary} style={{ marginRight: 10 }} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={{ fontFamily: 'Inter-Medium', fontSize: 12, color: currentColors.muted }}>Destino selecionado:</Text>
+                                    <Text style={{ fontFamily: 'Inter-Bold', fontSize: 15, color: currentColors.text }} numberOfLines={1}>{destinationName}</Text>
+                                </View>
+                            </View>
+                            
+                            <TouchableOpacity onPress={handleClearDestination} style={{ padding: 5 }}>
+                                <Ionicons name="close-circle" size={24} color={currentColors.muted} />
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <TouchableOpacity style={[styles.searchBar, { flexDirection: 'row', alignItems: 'center' }]} onPress={() => navigation.navigate("Search")}>
+                            <Ionicons name="search" size={20} color={currentColors.text} style={{ marginRight: 10 }} />
+                            <Text style={[styles.searchBarPlaceholder, { flex: 1 }]} numberOfLines={1}>
+                                Onde sua vaga te espera?
+                            </Text>
+                        </TouchableOpacity>
+                    )}
 
-                    <TouchableOpacity style={styles.recenterButton} onPress={goToMyLocation}>
+                    <TouchableOpacity 
+                        style={[styles.recenterButton, destinationName ? { transform: [{ translateY: 25 }] } : {}]} 
+                        onPress={goToMyLocation}
+                    >
                         <Ionicons name="locate" size={24} color={currentColors.text} />
                     </TouchableOpacity>
 

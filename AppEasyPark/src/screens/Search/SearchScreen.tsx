@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Keyboard, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Platform, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
@@ -13,12 +13,19 @@ import { getStyles } from './styles';
 // Componentes e Utils
 import { Header } from '../../components/Header/Header';
 import { STORAGE_KEYS } from '../../utils/constants';
-import { RecentSearchItem } from '../../types/models';
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
-
-// Pegamos a largura real da tela para criar uma trava de segurança intransponível
+// Pegamos a largura exata da tela para cálculos matemáticos
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Tipagem para salvar as coordenadas no histórico
+export interface RecentSearchItem {
+    id: string;
+    line1: string;
+    line2: string;
+    lat?: number; 
+    lng?: number; 
+}
 
 const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) => {
     const { theme } = useTheme();
@@ -26,31 +33,21 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
     const styles = getStyles(currentColors);
 
     const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
-    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const googleRef = useRef<GooglePlacesAutocompleteRef>(null);
 
-    // Carrega buscas recentes e escuta o teclado
+    const hasBottomList = isTyping || (!isTyping && recentSearches.length > 0);
+
     useEffect(() => {
         const loadRecentSearches = async () => {
             try {
                 const jsonValue = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
                 if (jsonValue) setRecentSearches(JSON.parse(jsonValue));
-            } catch (e) {
-                console.error("Falha ao carregar buscas", e);
-            }
+            } catch (e) { console.error(e); }
         };
         loadRecentSearches();
 
-        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
-        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
-
         setTimeout(() => googleRef.current?.focus(), 200);
-
-        return () => {
-            keyboardDidShowListener.remove();
-            keyboardDidHideListener.remove();
-        };
     }, []);
 
     const handleSelectPlace = async (data: any, details: any) => {
@@ -61,19 +58,21 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
         const placeDetails = data.structured_formatting?.secondary_text || '';
 
         try {
-            const newRecent: RecentSearchItem = { id: data.place_id, line1: placeName, line2: placeDetails };
+            const newRecent: RecentSearchItem = { id: data.place_id, line1: placeName, line2: placeDetails, lat, lng };
             const filteredRecents = recentSearches.filter(r => r.id !== newRecent.id);
             const updatedRecents = [newRecent, ...filteredRecents].slice(0, 5);
             setRecentSearches(updatedRecents);
             await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(updatedRecents));
-        } catch (e) { }
+        } catch (e) {}
 
-        navigation.navigate('Home', {
-            selectedSpotParams: {
-                id: data.place_id,
+        // Volta para a Home e passa o nome do local pesquisado
+        navigation.navigate('Home', { 
+            selectedSpotParams: { 
+                id: data.place_id, 
                 type: 'spot',
-                coords: { latitude: lat, longitude: lng }
-            }
+                label: placeName, 
+                coords: { latitude: lat, longitude: lng } 
+            } 
         });
     };
 
@@ -81,20 +80,16 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
         <View style={styles.container}>
             <Header title="Encontre seu estacionamento" />
 
-            <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10 }}>
+            <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 10, paddingBottom: Platform.OS === 'android' ? 20 : 40, zIndex: 10 }}>
+                
                 <GooglePlacesAutocomplete
                     ref={googleRef}
                     placeholder="Para onde você vai?"
                     fetchDetails={true}
                     onPress={handleSelectPlace}
-                    query={{
-                        key: GOOGLE_API_KEY,
-                        language: 'pt-BR',
-                        components: 'country:br',
-                    }}
-                    debounce={400}
-                    minLength={3}
-                    enablePoweredByContainer={false}
+                    query={{ key: GOOGLE_API_KEY, language: 'pt-BR', components: 'country:br' }}
+                    debounce={400} minLength={3} enablePoweredByContainer={false} 
+                    
                     textInputProps={{
                         placeholderTextColor: currentColors.muted,
                         onChangeText: (text) => setIsTyping(text.length > 0),
@@ -107,21 +102,25 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
                     )}
 
                     renderRow={(rowData) => (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
-                            <View style={{
-                                width: 40, height: 40, borderRadius: 20,
-                                backgroundColor: currentColors.primary + '15',
-                                justifyContent: 'center', alignItems: 'center', marginRight: 15
-                            }}>
-                                <Ionicons name="location" size={20} color={currentColors.primary} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', width: SCREEN_WIDTH - 70 }}>
+                            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: currentColors.primary + '15', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
+                                <Ionicons name="location-outline" size={20} color={currentColors.primary} />
                             </View>
-
-                            <View style={{ flex: 1 }}>
-                                <Text style={{ fontFamily: 'Inter-Bold', fontSize: 16, color: currentColors.text }} numberOfLines={1}>
+                            
+                            <View style={{ flex: 1, overflow: 'hidden' }}>
+                                <Text 
+                                    style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: currentColors.text }} 
+                                    numberOfLines={1} 
+                                    ellipsizeMode="tail"
+                                >
                                     {rowData.structured_formatting?.main_text || rowData.description}
                                 </Text>
                                 {rowData.structured_formatting?.secondary_text && (
-                                    <Text style={{ fontFamily: 'Inter-Medium', fontSize: 13, color: currentColors.muted, marginTop: 2 }} numberOfLines={1}>
+                                    <Text 
+                                        style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: currentColors.muted, marginTop: 2 }} 
+                                        numberOfLines={1} 
+                                        ellipsizeMode="tail"
+                                    >
                                         {rowData.structured_formatting.secondary_text}
                                     </Text>
                                 )}
@@ -130,61 +129,78 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
                     )}
 
                     styles={{
-                        container: { flex: 1 },
-                        textInputContainer: {
+                        container: { flex: isTyping ? 1 : 0 },
+                        textInputContainer: { 
+                            height: 56,
                             backgroundColor: currentColors.card,
-                            borderRadius: 14,
                             borderWidth: 1,
                             borderColor: currentColors.border,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            height: 56,
-                            elevation: 4,
-                            shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6,
+                            borderTopLeftRadius: 14,
+                            borderTopRightRadius: 14,
+                            borderBottomLeftRadius: hasBottomList ? 0 : 14,
+                            borderBottomRightRadius: hasBottomList ? 0 : 14,
                         },
-                        textInput: {
-                            flex: 1,
-                            backgroundColor: 'transparent',
-                            color: currentColors.text,
-                            fontSize: 16,
-                            fontFamily: 'Inter-Medium',
-                            height: '100%',
-                            marginTop: 0, marginBottom: 0,
-                        },
-                        listView: { marginTop: 15, backgroundColor: 'transparent' },
-                        row: {
+                        textInput: { flex: 1, backgroundColor: 'transparent', color: currentColors.text, fontSize: 16, fontFamily: 'Inter-Medium', height: '100%', marginTop: 0, marginBottom: 0 },
+                        
+                        listView: { 
+                            flexGrow: 0, 
                             backgroundColor: currentColors.card,
-                            paddingVertical: 12, paddingHorizontal: 15, marginBottom: 8,
-                            borderRadius: 12, borderWidth: 1, borderColor: currentColors.border,
-                            width: SCREEN_WIDTH - 40,
+                            borderWidth: 1,
+                            borderTopWidth: 0, 
+                            borderColor: currentColors.border,
+                            borderBottomLeftRadius: 14,
+                            borderBottomRightRadius: 14,
+                            overflow: 'hidden',
                         },
-                        separator: { height: 0 }
+                        row: { 
+                            backgroundColor: currentColors.card, 
+                            paddingVertical: 15, 
+                            paddingHorizontal: 15, 
+                            borderBottomWidth: 1, 
+                            borderBottomColor: currentColors.border,
+                            width: SCREEN_WIDTH - 40 
+                        },
+                        separator: { height: 0 } 
                     }}
                 />
+
                 {/* Buscas Recentes */}
                 {!isTyping && recentSearches.length > 0 && (
-                    <View style={{ marginTop: 30, paddingBottom: 20 }}>
-                        <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 16, color: currentColors.text, marginBottom: 15 }}>
+                    <View style={{ 
+                        flexShrink: 1, 
+                        backgroundColor: currentColors.card,
+                        borderWidth: 1,
+                        borderTopWidth: 0, 
+                        borderColor: currentColors.border,
+                        borderBottomLeftRadius: 14,
+                        borderBottomRightRadius: 14,
+                        zIndex: 5,
+                    }}>
+                        <Text style={{ fontFamily: 'Montserrat-Bold', fontSize: 13, color: currentColors.muted, marginHorizontal: 15, marginTop: 15, marginBottom: 5, textTransform: 'uppercase' }}>
                             Buscas Recentes
                         </Text>
                         <FlatList
                             data={recentSearches}
                             keyExtractor={(item) => item.id}
                             keyboardShouldPersistTaps="handled"
-                            contentContainerStyle={{ maxWidth: SCREEN_WIDTH - 40 }}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
-                                    style={{
-                                        flexDirection: 'row', alignItems: 'center',
-                                        paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: currentColors.border,
-                                        width: '100%'
-                                    }}
+                                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 15, borderBottomWidth: 1, borderBottomColor: currentColors.border }}
                                     onPress={() => {
-                                        googleRef.current?.setAddressText(item.line1);
-                                        googleRef.current?.focus();
+                                        if (item.lat && item.lng) {
+                                            navigation.navigate('Home', { 
+                                                selectedSpotParams: { id: item.id, type: 'spot', label: item.line1, coords: { latitude: item.lat, longitude: item.lng } } 
+                                            });
+                                        } else {
+                                            googleRef.current?.setAddressText(item.line1);
+                                            setIsTyping(true);
+                                            googleRef.current?.focus();
+                                        }
                                     }}
                                 >
-                                    <Ionicons name="time-outline" size={22} color={currentColors.muted} style={{ marginRight: 15 }} />
+                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: currentColors.primary + '15', justifyContent: 'center', alignItems: 'center', marginRight: 15 }}>
+                                        <Ionicons name="time-outline" size={20} color={currentColors.primary} />
+                                    </View>
                                     <View style={{ flex: 1, overflow: 'hidden' }}>
                                         <Text style={{ fontFamily: 'Inter-Medium', fontSize: 15, color: currentColors.text }} numberOfLines={1}>{item.line1}</Text>
                                         {item.line2 ? <Text style={{ fontFamily: 'Inter-Regular', fontSize: 13, color: currentColors.muted }} numberOfLines={1}>{item.line2}</Text> : null}
