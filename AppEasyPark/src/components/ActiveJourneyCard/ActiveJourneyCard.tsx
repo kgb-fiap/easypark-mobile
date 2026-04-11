@@ -32,7 +32,7 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
 
     return (
         <View style={styles.cardContainer}>
-            
+
             <View style={styles.headerRow}>
                 <View style={styles.statusBadge}>
                     <Text style={styles.statusText}>Vaga Reservada</Text>
@@ -42,14 +42,29 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
                 </TouchableOpacity>
             </View>
 
-            <View style={styles.spotInfo}>
-                <Text style={styles.spotTitle} numberOfLines={1}>{spotName}</Text>
-                <TouchableOpacity onPress={onCenterMap} style={{ padding: 4 }}>
-                    <Ionicons name="map" size={20} color={currentColors.primary} />
+            <View style={[styles.spotInfo, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+
+                <Ionicons name="car-sport" size={24} color={currentColors.primary} />
+                <Text style={[styles.spotTitle, { flex: 1, marginRight: 10, marginTop: 5, textAlign: 'left' }]} numberOfLines={1}>
+                    {spotName}
+                </Text>
+
+                <TouchableOpacity
+                    onPress={onCenterMap}
+                    style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: currentColors.primary + '15',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                    }}
+                >
+                    <Ionicons name="locate" size={22} color={currentColors.primary} />
                 </TouchableOpacity>
             </View>
 
-            {/* Cronômetro Gigante */}
+            {/* Cronômetro */}
             <View style={styles.timerContainer}>
                 <Text style={styles.timerLabel}>Tempo para ocupação</Text>
                 <Text style={[styles.timerValue, isTimeRunningOut && styles.timerWarning]}>
@@ -68,7 +83,7 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
                     <Text style={styles.checkinText}>Cheguei</Text>
                 </TouchableOpacity>
             </View>
-            
+
         </View>
     );
 };

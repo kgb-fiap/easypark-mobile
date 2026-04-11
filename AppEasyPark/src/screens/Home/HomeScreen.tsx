@@ -58,6 +58,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const [destinationName, setDestinationName] = useState<string | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
+    const [isPendingReturnToModal, setIsPendingReturnToModal] = useState(false);
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
     const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
     const [isActiveReservation, setIsActiveReservation] = useState(false);
@@ -85,13 +86,22 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         }, [])
     );
 
-    // Carrega Métodos de Pagamento quando a tela ganha foco
+    // Carrega Métodos de Pagamento e Reabre Modal se necessário
     useFocusEffect(
         useCallback(() => {
             AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_METHODS)
-                .then(val => val && setSavedPayments(JSON.parse(val)))
+                .then(val => {
+                    if (val) setSavedPayments(JSON.parse(val));
+                    
+                    if (isPendingReturnToModal) {
+                        if (selectedSpot) {
+                            setIsConfirmationVisible(true);
+                        }
+                        setIsPendingReturnToModal(false);
+                    }
+                })
                 .catch(e => console.error(e));
-        }, [])
+        }, [isPendingReturnToModal, selectedSpot])
     );
 
     // Animação do Bottom Sheet de Vaga
@@ -179,36 +189,23 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             return;
         }
 
-        stopTimer(); // Para o Hook
+        // Para o relógio e esconde o modal
+        stopTimer(); 
         setIsConfirmationVisible(false);
 
-        // Se for Pix, joga para a tela de pagamento de PIX
+        // Ativa a reserva
+        setReservedSpot(selectedSpot); 
+        setSelectedSpot(null); 
+        setIsActiveReservation(true); 
+        startJourneyTimer();
+
+        // Redirecionamento e Mensagens Inteligentes
         if (selectedPaymentId === 'pix') {
             navigation.navigate('PixPayment');
-            return;
+            Toast.show({ type: 'success', text1: 'Quase lá!', text2: 'Realize o pagamento PIX para liberar a cancela.' });
+        } else {
+            Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
         }
-
-        // Enquadrar estacionamento reservado
-        if (selectedSpot?.coords) {
-            // Subtrair um valor da latitude "puxa" a câmera para o Sul, 
-            // fazendo com que o pino do estacionamento fique na metade de cima da tela!
-            const LATITUDE_OFFSET = 0.003;
-
-            mapRef.current?.animateToRegion({
-                latitude: selectedSpot.coords.latitude - LATITUDE_OFFSET,
-                longitude: selectedSpot.coords.longitude,
-                latitudeDelta: 0.01, // Nível de Zoom
-                longitudeDelta: 0.01,
-            }, 1000); // 1000ms = 1 segundo de animação suave
-        }
-
-        setReservedSpot(selectedSpot); // Salva qual vaga ele escolheu
-        setSelectedSpot(null); // Fecha o BottomSheet antigo
-        setIsActiveReservation(true); // Muda a tela para "Modo Viagem"
-        startJourneyTimer(); // Inicia os 15 minutos
-
-        Toast.show({ type: 'success', text1: 'Vaga Reservada!', text2: `Sua vaga no ${selectedSpot?.title} está garantida.` });
-        setSelectedSpot(null);
     };
 
     const handleNavigateToSpot = () => {
@@ -461,7 +458,11 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
 
                                 <TouchableOpacity
                                     style={styles.addButton}
-                                    onPress={() => { setIsConfirmationVisible(false); navigation.navigate('PaymentMethods'); }}
+                                    onPress={() => {
+                                        setIsPendingReturnToModal(true); 
+                                        setIsConfirmationVisible(false); 
+                                        navigation.navigate('PaymentMethods'); 
+                                    }}
                                 >
                                     <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
                                     <Text style={styles.addButtonText}>Adicionar novo cartão</Text>
