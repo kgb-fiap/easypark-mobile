@@ -56,6 +56,7 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
                     } else {
                         setHistoryData(data as HistoryItem[]);
                     }
+                     
                 } catch (error) {
                     console.error("Falha ao carregar histórico", error);
                 } finally {

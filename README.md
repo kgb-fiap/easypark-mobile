@@ -78,21 +78,24 @@ npm install
 ```
 
 3. **Configuração das Variáveis de Ambiente (Obrigatório):** Este projeto consome APIs protegidas do Google e do Firebase. 
-   * a. Crie seu arquivo `.env` na raiz do projeto com base no modelo: 
-     ```bash
-     cp .env.example .env
-     ```
-   * b. Adicione suas chaves no arquivo `.env`: 
-     ```bash
-     env
-     EXPO_PUBLIC_GOOGLE_PLACES_API_KEY="SUA_CHAVE_GOOGLE_AQUI"
-     EXPO_PUBLIC_FIREBASE_API_KEY="SUA_CHAVE_FIREBASE_AQUI"
-     EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="seu-projeto.firebaseapp.com"
-     EXPO_PUBLIC_FIREBASE_PROJECT_ID="seu-projeto"
-     EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="seu-projeto.appspot.com"
-     EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="00000000000"
-     EXPO_PUBLIC_FIREBASE_APP_ID="1:00000000:web:abcdef"
-     ```
+  * a. Crie seu arquivo `.env` na raiz do projeto com base no modelo do arquivo `.env.example`: 
+    ```bash
+    cp .env.example .env
+    ```
+  * b. Adicione suas chaves no arquivo `.env`: 
+    ```env
+    # Google Maps
+    GOOGLE_MAPS_API_KEY="SUA_CHAVE_AQUI"
+    EXPO_PUBLIC_GOOGLE_PLACES_API_KEY="SUA_CHAVE_AQUI"
+
+    # Firebase Config
+    EXPO_PUBLIC_FIREBASE_API_KEY="AIza..."
+    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="seu-projeto.firebaseapp.com"
+    EXPO_PUBLIC_FIREBASE_PROJECT_ID="seu-projeto"
+    EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="seu-projeto.appspot.com"
+    EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="123456789"
+    EXPO_PUBLIC_FIREBASE_APP_ID="1:123456789:web:abcdef"
+    ```
 
 4. **Rode o projeto:**  
 * Devido à integração de mapas e navegação nativa, recomenda-se criar um **development build**:
