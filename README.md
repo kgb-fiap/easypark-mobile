@@ -4,13 +4,14 @@ Bem-vindo ao repositório do EasyPark, um aplicativo móvel desenvolvido com Rea
 
 O foco do projeto é oferecer uma experiência de usuário limpa, intuitiva e eficiente, inspirada em aplicativos de mobilidade de ponta, com funcionalidades robustas como mapa interativo, sistema de temas e um fluxo de reserva seguro.
 
-## **🎨 Protótipo e Design (Figma)**
+## **🎨 Protótipo e Design**
 
 O design do aplicativo foi criado no Figma, focando em uma interface minimalista e de fácil navegação. Você pode visualizar o protótipo interativo no link abaixo:
 
-**[Link para o protótipo no Figma](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1)**
-
-**[Link para o fluxo de navegação de telas](https://youtube.com/shorts/Eyyer4U6Cto?feature=share)**
+| 📌 Recurso | 🔗 Acesso Rápido |
+| :--- | :--- |
+| **🎨 Protótipo Interativo (Figma)** | [Clique aqui para acessar o protótipo](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1) |
+| **🎥 Demonstração de Navegação** | [Clique aqui para assistir ao vídeo](https://youtube.com/shorts/Eyyer4U6Cto?feature=share) |
 
 ## **🚀 Sobre o Projeto**
 
@@ -66,37 +67,44 @@ Siga os passos abaixo para rodar o projeto em seu ambiente de desenvolvimento.
 **Pré-requisitos:** Node.js, Watchman (para macOS) e um emulador Android ou iOS configurado.
 
 1. **Clone o repositório:**
-```
+```bash
 git clone https://github.com/kgb-fiap/easypark-mobile.git  
 cd AppEasyPark
 ```
 
 2. **Instale as dependências:**  
-```
+```bash
 npm install
 ```
 
-3. Configuração da Chave de API (Obrigatório):  
-   Este projeto usa a API do Google Maps (para exibir o mapa) e a API do Nominatim (para busca).  
-   * a. Crie seu arquivo .env:  
-     O projeto usa um arquivo env.example como modelo. Copie-o para criar seu arquivo .env local:  
-     cp env.example .env
-
-   * b. Adicione sua Chave do Google Maps:  
-     Abra o arquivo .env que você acabou de criar e insira sua própria chave de API do Google Maps (com as APIs "Maps SDK" habilitadas).  
-     GOOGLE\_MAPS\_API\_KEY="SUA\_CHAVE\_DE\_API\_VAI\_AQUI"
+3. **Configuração das Variáveis de Ambiente (Obrigatório):** Este projeto consome APIs protegidas do Google e do Firebase. 
+   * a. Crie seu arquivo `.env` na raiz do projeto com base no modelo: 
+     ```bash
+     cp .env.example .env
+     ```
+   * b. Adicione suas chaves no arquivo `.env`: 
+     ```bash
+     env
+     EXPO_PUBLIC_GOOGLE_PLACES_API_KEY="SUA_CHAVE_GOOGLE_AQUI"
+     EXPO_PUBLIC_FIREBASE_API_KEY="SUA_CHAVE_FIREBASE_AQUI"
+     EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN="seu-projeto.firebaseapp.com"
+     EXPO_PUBLIC_FIREBASE_PROJECT_ID="seu-projeto"
+     EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET="seu-projeto.appspot.com"
+     EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="00000000000"
+     EXPO_PUBLIC_FIREBASE_APP_ID="1:00000000:web:abcdef"
+     ```
 
 4. **Rode o projeto:**  
-* Para uma melhor experiência e para garantir que todos os recursos nativos (Google Maps, fontes, splash screen), você precisa criar um **development build** para que o app.config.js possa ler sua chave de API.
+* Devido à integração de mapas e navegação nativa, recomenda-se criar um **development build**:
 
-```
+```bash
 npx expo run:android  
 \# ou  
 npx expo run:ios
 ```
 
 * Para rodar com o Expo Go:  
-```
+```bash
 npx expo start
 ```
 
@@ -108,36 +116,27 @@ O projeto segue uma estrutura de pastas organizada para facilitar a manutenção
 AppEasyPark/
 ├── assets/                  # Ativos globais (logos, ícones de parking)
 ├── src/                     # Núcleo do Aplicativo
-│   ├── api/                 # Serviços de integração
-│   ├── context/             # Provedores
-│   ├── hooks/               # Lógica de negócio reutilizável
+│   ├── api/                 # Conexão com API Azure e Hooks do TanStack Query
+│   ├── services/            # Integração com terceiros (Firebase Auth, Firestore)
+│   ├── context/             # Provedores de estado global (Tema, etc)
+│   ├── hooks/               # Lógica de negócio reutilizável (Location, Countdown)
 │   ├── navigation/          # Orquestração de rotas e Tipagem Global
 │   ├── screens/             # Telas organizadas por Feature
-│   ├── theme/               # Design System
+│   ├── theme/               # Design System (Cores, MapStyles)
 │   ├── types/               # Interfaces globais do sistema
 │   └── utils/               # Funções utilitárias (formatadores, validadores)
 ├── App.tsx                  # Ponto de entrada e Providers
 ├── app.config.js            # Configuração dinâmica do Expo
-├── .env.example             # Variáveis de ambiente
-└── package.json             # Dependências
+├── .env                     # Variáveis de ambiente secretas
+└── package.json             # Dependências e scripts
 ```
 
 ## **🚀 Como Testar o Login**
 
-Após o build ser concluído e o app iniciar, você tem duas opções para testar o fluxo de login:
-
-### **Opção 1: Criar uma Nova Conta**
-
-1. Na tela de Boas-Vindas, clique em **"Cadastre-se"**.  
-2. Preencha os campos (o app valida nome sem números e senhas iguais).  
-3. Após o cadastro, você será logado e seus dados serão salvos no AsyncStorage do dispositivo.
-
-### **Opção 2: Usar o Usuário Mock (Backdoor)**
-
-Para testes rápidos, você pode usar as credenciais "mock" que estão no código da tela de Login.
-
-* **Email:** teste@teste.com  
-* **Senha:** 123
+1. Ao abrir o aplicativo, clique em "Cadastre-se" na tela de Boas-Vindas.
+2. Preencha seus dados reais ou fictícios para criar uma conta na nuvem.
+3. Após o cadastro, você será redirecionado para a Home, onde a API da Azure alimentará o mapa com as vagas e o Firebase gerenciará sua sessão.
+4. Experimente realizar pesquisas, fechar o app e abrir novamente para ver o Firebase Firestore recuperar seu histórico em tempo real!
 
 ## **✨ Criadores**
 
