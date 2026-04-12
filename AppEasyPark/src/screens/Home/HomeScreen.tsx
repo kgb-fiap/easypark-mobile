@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
     View, Text, TouchableOpacity, ActivityIndicator,
-    Animated, Easing, Modal, ScrollView, BackHandler,
+    Animated, Easing, Modal, BackHandler,
     StyleSheet, Linking, Platform
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
-import MapView, { Marker, Circle, MarkerPressEvent } from 'react-native-maps';
+import MapView, { Marker, Circle } from 'react-native-maps';
 
 // Navigation e Context
 import { RootStackScreenProps } from "../../navigation/types";
@@ -25,13 +25,10 @@ import { ActiveJourneyCard } from '../../components/ActiveJourneyCard/ActiveJour
 import { useLocation } from '../../hooks/useLocation';
 import { useCountdown } from '../../hooks/useCountdown';
 import { formatTime } from '../../utils/formatters';
-import { STORAGE_KEYS } from '../../utils/constants';
+import { STORAGE_KEYS } from "../../utils/constants";
 
-const MOCK_PARKING_SPOTS = [
-    { id: '1', title: "Estacionamento Fiap", description: "Vagas: 10", coords: { latitude: -23.56158, longitude: -46.65609 } },
-    { id: '2', title: "Shopping Pátio Paulista", description: "Vagas: 30", coords: { latitude: -23.56275, longitude: -46.64855 } },
-    { id: '3', title: "Estacionamento Augusta", description: "Vagas: 5", coords: { latitude: -23.55145, longitude: -46.65825 } },
-];
+// API Hooks
+import { useEstacionamentos } from '../../api/hooks/useEstacionamentos';
 
 interface PaymentItem {
     id: string;
@@ -46,14 +43,32 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
 
-    // Invocando os Hooks de Regra de Negócio
+    // Invocando os Hooks
     const { location, initialRegion } = useLocation();
     const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
     const { countdown: journeyCountdown, startTimer: startJourneyTimer, stopTimer: stopJourneyTimer } = useCountdown(900);
+    
+    // Chamada da API hospedada na Azure
+    const { data: estacionamentosDaApi, isLoading: isLoadingVagas } = useEstacionamentos();
+
+    // Traduzindo os dados para o formato esperado
+    const allFormattedSpots = useMemo(() => {
+        if (!estacionamentosDaApi) return [];
+        
+        return estacionamentosDaApi.map(est => ({
+            id: est.id.toString(),
+            title: est.nome,
+            description: `${est.totalVagas} vagas disponíveis`,
+            coords: {
+                latitude: est.endereco.latitude,
+                longitude: est.endereco.longitude
+            }
+        }));
+    }, [estacionamentosDaApi]);
 
     // Estados da UI
     const [userName, setUserName] = useState<string>('Usuário');
-    const [parkingSpots, setParkingSpots] = useState(MOCK_PARKING_SPOTS);
+    const [parkingSpots, setParkingSpots] = useState<any[]>([]); // Inicia vazio e preenche com a API
     const [searchCenter, setSearchCenter] = useState<{ latitude: number, longitude: number } | null>(null);
     const [destinationName, setDestinationName] = useState<string | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
@@ -67,17 +82,23 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     // Refs para Animações e Mapa
     const mapRef = useRef<MapView>(null);
     const sheetAnim = useRef(new Animated.Value(300)).current;
-    const timerAnim = useRef(new Animated.Value(100)).current; // Controla apenas o aspecto visual (largura)
+    const timerAnim = useRef(new Animated.Value(100)).current;
 
     // --- Efeitos de Ciclo de Vida ---
 
-    // Carrega Nome
+    // Sincroniza API com a tela
+    useEffect(() => {
+        // Só sobrescreve se o usuário não estiver com uma busca ativa
+        if (!searchCenter && allFormattedSpots.length > 0) {
+            setParkingSpots(allFormattedSpots);
+        }
+    }, [allFormattedSpots]);
+
     useEffect(() => {
         AsyncStorage.getItem(STORAGE_KEYS.USER_NAME)
             .then(name => name && setUserName(name.split(' ')[0]));
     }, []);
 
-    // Intercepta Botão Voltar do Android
     useFocusEffect(
         useCallback(() => {
             const onBackPress = () => { BackHandler.exitApp(); return true; };
@@ -86,17 +107,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         }, [])
     );
 
-    // Carrega Métodos de Pagamento e Reabre Modal se necessário
     useFocusEffect(
         useCallback(() => {
             AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_METHODS)
                 .then(val => {
                     if (val) setSavedPayments(JSON.parse(val));
                     
-                    if (isPendingReturnToModal) {
-                        if (selectedSpot) {
-                            setIsConfirmationVisible(true);
-                        }
+                    if (isPendingReturnToModal && selectedSpot) {
+                        setIsConfirmationVisible(true);
                         setIsPendingReturnToModal(false);
                     }
                 })
@@ -104,7 +122,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         }, [isPendingReturnToModal, selectedSpot])
     );
 
-    // Animação do Bottom Sheet de Vaga
     useEffect(() => {
         Animated.timing(sheetAnim, {
             toValue: selectedSpot ? 0 : 300,
@@ -114,7 +131,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         }).start();
     }, [selectedSpot]);
 
-    // Ouve o Timer do Hook para desativar o modal automaticamente
     useEffect(() => {
         if (isConfirmationVisible && isActive && countdown === 0) {
             setIsConfirmationVisible(false);
@@ -133,19 +149,17 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 longitudeDelta: 0.01,
             }, 1000);
 
-            setParkingSpots(MOCK_PARKING_SPOTS); // Reseta o filtro mostrando todos os estacionamentos novamente
-            setSearchCenter(null); // Limpa o ponto verde e o círculo do mapa
-            setDestinationName(null); // Apaga o nome do destino ao limpar o mapa
+            setParkingSpots(allFormattedSpots);
+            setSearchCenter(null);
+            setDestinationName(null);
         }
     };
 
-    // Limpar a busca
     const handleClearDestination = () => {
-        setParkingSpots(MOCK_PARKING_SPOTS); // Volta os pinos ao normal
-        setSearchCenter(null);               // Apaga a esfera verde
-        setDestinationName(null);            // Esconde a barra de destino
+        setParkingSpots(allFormattedSpots);
+        setSearchCenter(null);
+        setDestinationName(null);
 
-        // Se tiver localização, volta a câmera para o usuário
         if (location) {
             mapRef.current?.animateToRegion({
                 latitude: location.coords.latitude,
@@ -171,9 +185,8 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const handleReserveClick = () => {
         setSelectedPaymentId(savedPayments.length > 0 ? savedPayments[0].id : null);
         setIsConfirmationVisible(true);
-        startTimer(); // Aciona o Hook
+        startTimer();
 
-        // Aciona a animação visual da barra
         timerAnim.setValue(100);
         Animated.timing(timerAnim, {
             toValue: 0,
@@ -189,17 +202,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             return;
         }
 
-        // Para o relógio e esconde o modal
         stopTimer(); 
         setIsConfirmationVisible(false);
 
-        // Ativa a reserva
         setReservedSpot(selectedSpot); 
         setSelectedSpot(null); 
         setIsActiveReservation(true); 
         startJourneyTimer();
 
-        // Redirecionamento e Mensagens Inteligentes
         if (selectedPaymentId === 'pix') {
             navigation.navigate('PixPayment');
             Toast.show({ type: 'success', text1: 'Quase lá!', text2: 'Realize o pagamento PIX para liberar a cancela.' });
@@ -217,11 +227,8 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         const { latitude, longitude } = reservedSpot.coords;
         const label = reservedSpot.title || "Estacionamento";
 
-        // Monta a URL (URI Scheme) correta para cada sistema operacional
         const url = Platform.select({
-            // iOS: Abre o Apple Maps já com a rota traçada para o destino
             ios: `maps://app?daddr=${latitude},${longitude}&q=${encodeURIComponent(label)}`,
-            // Android: Abre o Google Maps no modo de navegação
             android: `google.navigation:q=${latitude},${longitude}`
         });
 
@@ -230,7 +237,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 if (supported) {
                     Linking.openURL(url);
                 } else {
-                    // Fallback: Abre no navegador se o app de mapa não existir
                     const browserUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
                     Linking.openURL(browserUrl);
                 }
@@ -250,9 +256,8 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         setIsConfirmationVisible(false);
     };
 
-    // Algoritmo de Haversine: Calcula a distância em KM entre duas coordenadas geográficas
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371; // Raio da Terra em km
+        const R = 6371; 
         const dLat = (lat2 - lat1) * (Math.PI / 180);
         const dLon = (lon2 - lon1) * (Math.PI / 180);
         const a =
@@ -260,10 +265,10 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distância em quilômetros
+        return R * c; 
     };
 
-    // --- Efeito: Intercepta o resultado da Tela de Busca e Filtra o Raio de 1km ---
+    // --- Efeito de busca com filtro de raio ---
     useEffect(() => {
         if (route.params?.selectedSpotParams?.coords) {
             const { latitude, longitude } = route.params.selectedSpotParams.coords;
@@ -285,12 +290,12 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     setDestinationName(labelName);
                 }
 
-                const spotsNearby = MOCK_PARKING_SPOTS.filter(spot => {
+                const spotsNearby = allFormattedSpots.filter(spot => {
                     const distance = calculateDistance(
                         latitude, longitude,
                         spot.coords.latitude, spot.coords.longitude
                     );
-                    return distance <= 1; // Raio de 1km
+                    return distance <= 1;
                 });
 
                 setParkingSpots(spotsNearby);
@@ -307,13 +312,12 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
 
             }, 400);
         }
-    }, [route.params?.selectedSpotParams]);
+    }, [route.params?.selectedSpotParams, allFormattedSpots]);
 
     return (
         <View style={styles.container}>
 
-            {/* Mapa ou Loading */}
-            {initialRegion ? (
+            {initialRegion && !isLoadingVagas ? (
                 <MapView
                     ref={mapRef}
                     style={StyleSheet.absoluteFillObject}
@@ -329,29 +333,20 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                         <Marker
                             coordinate={searchCenter}
                             title="Destino Pesquisado"
-                            anchor={{ x: 0.5, y: 0.5 }} // Propriedade que garante que o "centro" da bolinha fique exatamente na rua pesquisada
+                            anchor={{ x: 0.5, y: 0.5 }}
                         >
                             <View style={{
-                                width: 36,
-                                height: 36,
-                                backgroundColor: currentColors.primary,
-                                borderRadius: 18,
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                borderWidth: 3,
-                                borderColor: '#ffffff',
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 4 },
-                                shadowOpacity: 0.3,
-                                shadowRadius: 4,
-                                elevation: 5,
+                                width: 36, height: 36, backgroundColor: currentColors.primary,
+                                borderRadius: 18, justifyContent: 'center', alignItems: 'center',
+                                borderWidth: 3, borderColor: '#ffffff', shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3,
+                                shadowRadius: 4, elevation: 5,
                             }}>
                                 <Ionicons name="flag" size={18} color="#ffffff" />
                             </View>
                         </Marker>
                     )}
 
-                    {/* Esfera com raio de 1km */}
                     {searchCenter && (
                         <Circle
                             center={searchCenter}
@@ -362,7 +357,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                         />
                     )}
 
-                    {/* Pinos dos estacionamentos */}
                     {parkingSpots.map(spot => {
                         const isTheReservedSpot = reservedSpot?.id === spot.id;
 
@@ -385,7 +379,9 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             ) : (
                 <View style={styles.mapPlaceholder}>
                     <ActivityIndicator size="large" color={currentColors.primary} />
-                    <Text style={styles.loadingText}>Carregando mapa...</Text>
+                    <Text style={styles.loadingText}>
+                        {isLoadingVagas ? 'Buscando vagas disponíveis...' : 'Encontrando sua localização...'}
+                    </Text>
                 </View>
             )}
 
@@ -421,7 +417,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                             <Text style={styles.pickerLabel}>Método de Pagamento:</Text>
                             <View style={styles.paymentContainer}>
 
-                                {/* Mostrando no máximo os 2 últimos cartões*/}
                                 {savedPayments.slice(0, 2).map(card => {
                                     const isSelected = selectedPaymentId === card.id;
                                     return (
@@ -494,14 +489,11 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             </Modal>
 
             {isActiveReservation ? (
-                // MODO VIAGEM: Mostra o card de jornada ativa com contagem regressiva, botão de centralizar no mapa, navegação e check-in
                 <ActiveJourneyCard
                     spotName={reservedSpot?.title || "Estacionamento"}
                     countdown={journeyCountdown}
                     onCenterMap={goToDestination}
-
                     onNavigate={handleNavigateToSpot}
-
                     onCheckin={() => {
                         stopJourneyTimer();
                         setIsActiveReservation(false);
@@ -510,7 +502,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     onCancel={handleCancelJourney}
                 />
             ) : (
-                // MODO BUSCA (Padrão): Mostra a barra de busca, botão de GPS e Menu Inferior
                 <>
                     {destinationName ? (
                         <View style={[styles.searchBar, { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: currentColors.card, borderColor: currentColors.primary, borderWidth: 1 }]}>

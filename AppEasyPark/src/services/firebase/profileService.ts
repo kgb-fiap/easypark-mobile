@@ -4,7 +4,7 @@ import { updateProfile, updateEmail } from 'firebase/auth';
 
 export const profileService = {
 
-    // Atualizar Perfil (Nome e E-mail)
+    // Atualizar perfil (Nome e E-mail)
     updateUser: async (newName: string, newEmail: string) => {
         try {
             const user = auth.currentUser;

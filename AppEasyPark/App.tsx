@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { RootNavigator } from './src/navigation';
@@ -7,6 +8,8 @@ import Toast from 'react-native-toast-message';
 
 import * as SplashScreen from 'expo-splash-screen';
 SplashScreen.preventAutoHideAsync();
+
+const queryClient = new QueryClient();
 
 export default function App() {
 
@@ -39,11 +42,13 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
-      <Toast />
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+        <Toast />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
