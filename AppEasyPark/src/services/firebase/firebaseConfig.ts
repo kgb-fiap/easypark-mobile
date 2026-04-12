@@ -1,11 +1,14 @@
-import { initializeApp } from 'firebase/app';
-import { initializeAuth } from 'firebase/auth';
+// 1. Importamos os Tipos (FirebaseApp) junto com as funções
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+// Importamos o Tipo (Auth)
+import { initializeAuth, getAuth, Auth } from 'firebase/auth';
+// Importamos o Tipo (Firestore)
+import { getFirestore, Firestore } from 'firebase/firestore'; 
+
 // @ts-ignore
 import { getReactNativePersistence } from 'firebase/auth';
-
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -15,12 +18,24 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// 2. A SOLUÇÃO AQUI: Nós dizemos exatamente o que cada variável vai ser!
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
 
-// Inicializa a Autenticação com "Memória" (Persistence) para o celular não deslogar sozinho
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
-});
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+  
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
 
-export { app, auth };
+  db = getFirestore(app);
+  
+} else {
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+export { app, auth, db };

@@ -16,7 +16,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../../components/CustomInput/CustomInput';
 import { STORAGE_KEYS } from "../../../utils/constants";
 
-// Firebase Auth Service
+// Firebase Services
 import { authService } from '../../../services/firebase/authService';
 
 const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation }) => {
@@ -29,7 +29,7 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
     const [confirmarSenha, setConfirmarSenha] = useState("");
-    
+
     // --- Estado de Carregamento para a API ---
     const [isLoading, setIsLoading] = useState(false);
 
@@ -62,7 +62,7 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
                 let errorMessage = 'Não foi possível criar a conta.';
                 if (error.includes('email-already-in-use')) errorMessage = 'Este e-mail já está cadastrado.';
                 if (error.includes('invalid-email')) errorMessage = 'Formato de e-mail inválido.';
-                
+
                 Toast.show({ type: 'error', text1: 'Erro no Cadastro', text2: errorMessage });
             } else if (user) {
                 // 3. O Firebase já loga o usuário automaticamente após criar a conta.
@@ -70,7 +70,7 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
                 await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, nome.trim());
 
                 Toast.show({ type: 'success', text1: 'Conta criada!', text2: 'Bem-vindo ao aplicativo.' });
-                
+
                 // Limpa o histórico de navegação e joga direto para a Home
                 setTimeout(() => {
                     navigation.reset({
@@ -143,11 +143,11 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
                             onChangeText={setConfirmarSenha}
                         />
 
-                        <PrimaryButton 
-                            title={isLoading ? "Criando conta..." : "Cadastrar"} 
-                            onPress={handleRegister} 
+                        <PrimaryButton
+                            title={isLoading ? "Criando conta..." : "Cadastrar"}
+                            onPress={handleRegister}
                             disabled={isLoading}
-                            containerStyle={{ marginTop: 20, marginBottom: 10 }} 
+                            containerStyle={{ marginTop: 20, marginBottom: 10 }}
                         />
 
                         <Text style={styles.signupText}>

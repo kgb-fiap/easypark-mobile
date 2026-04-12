@@ -16,7 +16,7 @@ import { PrimaryButton } from '../../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../../components/CustomInput/CustomInput';
 import { STORAGE_KEYS } from "../../../utils/constants";
 
-// Firebase Auth Service
+// Firebase Services
 import { authService } from '../../../services/firebase/authService';
 
 const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) => {
@@ -27,7 +27,7 @@ const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) =>
     // --- Estados do Formulário ---
     const [email, setEmail] = useState("");
     const [senha, setSenha] = useState("");
-    
+
     // --- Estado de Carregamento para a API ---
     const [isLoading, setIsLoading] = useState(false);
 
@@ -105,11 +105,11 @@ const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) =>
                         />
 
                         {/* Botão blindado com UX de carregamento */}
-                        <PrimaryButton 
-                            title={isLoading ? "Entrando..." : "Entrar"} 
-                            onPress={handleLogin} 
+                        <PrimaryButton
+                            title={isLoading ? "Entrando..." : "Entrar"}
+                            onPress={handleLogin}
                             disabled={isLoading}
-                            containerStyle={{ marginTop: 20, marginBottom: 10 }} 
+                            containerStyle={{ marginTop: 20, marginBottom: 10 }}
                         />
 
                         <Text style={styles.signupText}>

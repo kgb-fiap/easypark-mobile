@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Toast from 'react-native-toast-message';
@@ -16,6 +16,10 @@ import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { CustomInput } from '../../components/CustomInput/CustomInput';
 import { STORAGE_KEYS } from '../../utils/constants';
 
+// Firebase Services
+import { auth } from '../../services/firebase/firebaseConfig';
+import { profileService } from '../../services/firebase/profileService';
+
 const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navigation }) => {
     const { theme } = useTheme();
     const currentColors = colors[theme];
@@ -25,64 +29,63 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
 
-    // --- Estados de Controle (UX/UI) ---
+    // --- Estados de Controle ---
     const [originalName, setOriginalName] = useState('');
     const [originalEmail, setOriginalEmail] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Carrega os dados do usuário
+    // Carrega os dados do Firebase
     useEffect(() => {
-        const loadUserData = async () => {
-            try {
-                const userDataJson = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
-                if (userDataJson !== null) {
-                    const userData = JSON.parse(userDataJson);
-                    setName(userData.name || '');
-                    setEmail(userData.email || '');
-                    setOriginalName(userData.name || '');
-                    setOriginalEmail(userData.email || '');
-                }
-            } catch (e) {
-                Toast.show({ type: 'error', text1: 'Erro', text2: 'Não foi possível carregar seus dados.' });
+        const loadUserData = () => {
+            const user = auth.currentUser;
+            if (user) {
+                const currentName = user.displayName || '';
+                const currentEmail = user.email || '';
+                
+                setName(currentName);
+                setEmail(currentEmail);
+                setOriginalName(currentName);
+                setOriginalEmail(currentEmail);
             }
         };
         loadUserData();
     }, []);
 
-    // Função para salvar as alterações
+    // Salva as alterações
     const handleSave = async () => {
         if (!name.trim() || !email.trim()) {
             Toast.show({ type: 'error', text1: 'Atenção', text2: 'Os campos não podem ficar vazios.' });
             return;
         }
 
-        setIsLoading(true); // Inicia o loading visual no botão
+        setIsLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Chama a camada de serviço para atualizar Auth e Firestore
+            const response = await profileService.updateUser(name.trim(), email.trim());
 
-            /* * FUTURO CÓDIGO FIREBASE AQUI:
-             * await authService.updateUserProfile(name);
-             * if (email !== originalEmail) {
-             * await authService.updateUserEmail(email);
-             * }
-             */
+            if (response.success) {
+                // Atualiza o Cache local apenas para a Home Screen ler o nome
+                await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name.trim());
 
-            // --- LÓGICA ATUAL (Mock AsyncStorage) ---
-            const currentCreds = await AsyncStorage.getItem(STORAGE_KEYS.USER_CREDENTIALS);
-            const password = currentCreds ? JSON.parse(currentCreds).password : '';
-            const updatedUserData = { name, email, password };
+                // Atualiza os estados de controle para desativar o botão de salvar
+                setOriginalName(name.trim());
+                setOriginalEmail(email.trim());
 
-            await AsyncStorage.setItem(STORAGE_KEYS.USER_CREDENTIALS, JSON.stringify(updatedUserData));
-            await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
-            // ----------------------------------------
+                Toast.show({ type: 'success', text1: 'Sucesso!', text2: 'Suas informações foram atualizadas.' });
+            } else {
+                // Erros do Firebase
+                let errorMsg = 'Não foi possível atualizar o perfil.';
+                if (response.error?.includes('requires-recent-login')) {
+                    errorMsg = 'Por segurança, faça login novamente para trocar o e-mail.';
+                } else if (response.error?.includes('email-already-in-use')) {
+                    errorMsg = 'Este e-mail já está sendo usado por outra conta.';
+                }
 
-            setOriginalName(name);
-            setOriginalEmail(email);
-
-            Toast.show({ type: 'success', text1: 'Sucesso!', text2: 'Suas informações foram atualizadas.' });
+                Toast.show({ type: 'error', text1: 'Atenção', text2: errorMsg });
+            }
         } catch (e: any) {
-            Toast.show({ type: 'error', text1: 'Erro ao salvar', text2: e.message || 'Tente novamente mais tarde.' });
+            Toast.show({ type: 'error', text1: 'Erro ao salvar', text2: 'Ocorreu um erro inesperado.' });
         } finally {
             setIsLoading(false);
         }
@@ -91,7 +94,7 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
     const handleAppReset = () => {
         Alert.alert(
             "Resetar Aplicativo?",
-            "Isso apagará TODOS os dados salvos. Ação irreversível.",
+            "Isso apagará TODOS os dados salvos e te deslogará.",
             [
                 { text: "Cancelar", style: "cancel" },
                 { 
@@ -99,6 +102,7 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
                     style: "destructive", 
                     onPress: async () => {
                         await AsyncStorage.clear(); 
+                        await auth.signOut();
                         navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
                     }
                 }
@@ -116,7 +120,7 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
                 contentContainerStyle={[styles.scrollContainer, { flexGrow: 1, paddingBottom: 40 }]} 
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
-                automaticallyAdjustKeyboardInsets={true} // Ajuda o iOS a lidar com o teclado
+                automaticallyAdjustKeyboardInsets={true}
             >
                 
                 <View style={{ alignItems: 'center', marginBottom: 30, marginTop: 20 }}>
@@ -164,7 +168,7 @@ const ProfileInfoScreen: React.FC<RootStackScreenProps<'ProfileInfo'>> = ({ navi
                 {__DEV__ && (
                     <TouchableOpacity style={styles.resetButton} onPress={handleAppReset}>
                         <Ionicons name="nuclear-outline" size={20} color="#FFC107" />
-                        <Text style={styles.resetButtonText}>Resetar App (Dev)</Text>
+                        <Text style={styles.resetButtonText}>Resetar App e Sair</Text>
                     </TouchableOpacity>
                 )}
             </ScrollView>

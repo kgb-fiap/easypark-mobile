@@ -12,11 +12,12 @@ import { getStyles } from './styles';
 
 // Componentes e Utils
 import { Header } from '../../components/Header/Header';
-import { STORAGE_KEYS } from '../../utils/constants';
+
+// Firebase Services
+import { profileService } from '../../services/firebase/profileService';
 
 const GOOGLE_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
-// Pegamos a largura exata da tela para cálculos matemáticos
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window'); // Largura exata da tela
 
 // Tipagem para salvar as coordenadas no histórico
 export interface RecentSearchItem {
@@ -41,12 +42,17 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
     useEffect(() => {
         const loadRecentSearches = async () => {
             try {
-                const jsonValue = await AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES);
-                if (jsonValue) setRecentSearches(JSON.parse(jsonValue));
-            } catch (e) { console.error(e); }
+                const history = await profileService.getSearchHistory();
+                if (history && history.length > 0) {
+                    // Fazemos um cast para garantir que o TypeScript entenda o formato
+                    setRecentSearches(history as RecentSearchItem[]);
+                }
+            } catch (e) { 
+                console.error("Erro ao carregar histórico da nuvem", e); 
+            }
         };
+        
         loadRecentSearches();
-
         setTimeout(() => googleRef.current?.focus(), 200);
     }, []);
 
@@ -59,11 +65,15 @@ const SearchScreen: React.FC<RootStackScreenProps<'Search'>> = ({ navigation }) 
 
         try {
             const newRecent: RecentSearchItem = { id: data.place_id, line1: placeName, line2: placeDetails, lat, lng };
+            
             const filteredRecents = recentSearches.filter(r => r.id !== newRecent.id);
             const updatedRecents = [newRecent, ...filteredRecents].slice(0, 5);
             setRecentSearches(updatedRecents);
-            await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(updatedRecents));
-        } catch (e) {}
+            
+            await profileService.saveSearchHistory(newRecent);
+        } catch (e) {
+            console.error("Erro ao salvar histórico na nuvem", e);
+        }
 
         // Volta para a Home e passa o nome do local pesquisado
         navigation.navigate('Home', { 
