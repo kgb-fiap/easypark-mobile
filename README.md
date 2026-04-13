@@ -134,12 +134,24 @@ AppEasyPark/
 └── package.json             # Dependências e scripts
 ```
 
-## **🚀 Como Testar o Login**
+## **🚀 Como testar o aplicativo**
 
-1. Ao abrir o aplicativo, clique em "Cadastre-se" na tela de Boas-Vindas.
-2. Preencha seus dados reais ou fictícios para criar uma conta na nuvem.
-3. Após o cadastro, você será redirecionado para a Home, onde a API da Azure alimentará o mapa com as vagas e o Firebase gerenciará sua sessão.
-4. Experimente realizar pesquisas, fechar o app e abrir novamente para ver o Firebase Firestore recuperar seu histórico em tempo real!
+Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de autenticação e o consumo de dados seguindo os passos abaixo:
+
+### **Opção 1: Criar uma Nova Conta (Cadastro)**
+1. Ao abrir o aplicativo, clique em **"Cadastre-se"** na tela de Boas-Vindas.
+2. Preencha os campos com dados reais ou fictícios.
+3. Após o sucesso, sua conta será criada no banco de dados e você será logado e redirecionado automaticamente para a Home.
+
+### **Opção 2: Fazer Login (Conta Existente)**
+1. Na tela de Boas-Vindas, clique em **"Fazer Login"** (ou utilize o link de redirecionamento na parte inferior da tela de Cadastro).
+2. Insira as credenciais da conta que você criou anteriormente.
+3. O Firebase validará a sua sessão de forma segura e liberará o seu acesso à plataforma.
+
+### **🧪 O que testar após o acesso?**
+* **Mapa e Vagas da Azure:** Na Home, observe os pinos de estacionamento sendo carregados dinamicamente através do consumo da nossa API na Azure.
+* **Fluxo de Reserva:** Selecione um estacionamento no mapa, clique em "Reservar Vaga" e acompanhe o modal de pagamento e o timer regressivo de 5 minutos.
+* **Persistência na Nuvem:** Acesse a tela de Busca, pesquise por alguns endereços, feche o aplicativo completamente e abra de novo. O **Cloud Firestore** irá recuperar o seu histórico de pesquisas exatamente como você deixou.
 
 ## **✨ Criadores**
 
