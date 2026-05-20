@@ -4,6 +4,8 @@ Bem-vindo ao repositório do EasyPark, um aplicativo móvel desenvolvido com Rea
 
 O foco do projeto é oferecer uma experiência de usuário limpa, intuitiva e eficiente, inspirada em aplicativos de mobilidade de ponta, com funcionalidades robustas como mapa interativo, sistema de temas e um fluxo de reserva seguro.
 
+---
+
 ## **🎨 Protótipo e Design**
 
 O design do aplicativo foi criado no Figma, focando em uma interface minimalista e de fácil navegação. Você pode visualizar o protótipo interativo no link abaixo:
@@ -12,6 +14,8 @@ O design do aplicativo foi criado no Figma, focando em uma interface minimalista
 | :--- | :--- |
 | **🎨 Protótipo Interativo (Figma)** | [Clique aqui para acessar o protótipo](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1) |
 | **🎥 Demonstração de Navegação** | [Clique aqui para assistir ao vídeo](https://youtube.com/shorts/Eyyer4U6Cto?feature=share) |
+
+---
 
 ## **🚀 Sobre o Projeto**
 
@@ -45,6 +49,8 @@ O EasyPark nasceu da necessidade de otimizar a gestão de estacionamentos, subst
 * **🔔 Notificações Modernas:**  
   * Uso de "toasts" (react-native-toast-message) para mensagens de erro e sucesso, proporcionando uma experiência de usuário mais fluida.
 
+---
+
 ## **🛠️ Tecnologias Utilizadas**
 
 Este projeto foi construído utilizando tecnologias modernas do ecossistema React Native:
@@ -59,6 +65,8 @@ Este projeto foi construído utilizando tecnologias modernas do ecossistema Reac
 * **Notificações:** react-native-toast-message  
 * **Fontes:** expo-font, expo-splash-screen  
 * **Configuração:** dotenv, app.config.js
+
+---
 
 ## **⚙️ Configuração e Instalação**
 
@@ -111,6 +119,8 @@ npx expo run:ios
 npx expo start
 ```
 
+---
+
 ## **🏛️ Arquitetura e Estrutura do Projeto**
 
 O projeto segue uma estrutura de pastas organizada para facilitar a manutenção e escalabilidade:
@@ -135,6 +145,9 @@ AppEasyPark/
 ```
 
 ## **🚀 Como testar o aplicativo**
+---
+
+## **🚀 Como Testar o Login**
 
 Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de autenticação e o consumo de dados seguindo os passos abaixo:
 
@@ -153,8 +166,10 @@ Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de
 * **Fluxo de Reserva:** Selecione um estacionamento no mapa, clique em "Reservar Vaga" e acompanhe o modal de pagamento e o timer regressivo de 5 minutos.
 * **Persistência na Nuvem:** Acesse a tela de Busca, pesquise por alguns endereços, feche o aplicativo completamente e abra de novo. O **Cloud Firestore** irá recuperar o seu histórico de pesquisas exatamente como você deixou.
 
+---
+
 ## **✨ Criadores**
 
-* [@gabrielCZz](https://github.com/orgs/kgb-fiap/people/gabrielCZz) - Gabriel Cruz
-* [@k-auaferreira](https://github.com/orgs/kgb-fiap/people/k-auaferreira) - Kauã Ferreira
-* [@Vi-debu](https://github.com/orgs/kgb-fiap/people/Vi-debu) - Vinicius Bitú
+* [@gabrielCZz](https://github.com/orgs/kgb-fiap/people/gabrielCZz) - Gabriel Cruz | RM 559613
+* [@k-auaferreira](https://github.com/orgs/kgb-fiap/people/k-auaferreira) - Kauã Ferreira | RM 560992
+* [@Vi-debu](https://github.com/orgs/kgb-fiap/people/Vi-debu) - Vinicius Bitú | RM560227
