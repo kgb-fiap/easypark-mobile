@@ -144,10 +144,9 @@ AppEasyPark/
 └── package.json             # Dependências e scripts
 ```
 
-## **🚀 Como testar o aplicativo**
 ---
 
-## **🚀 Como Testar o Login**
+## **🚀 Como testar o aplicativo**
 
 Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de autenticação e o consumo de dados seguindo os passos abaixo:
 
