@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
+import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import { RootNavigator } from './src/navigation';
 import Toast from 'react-native-toast-message';
@@ -43,12 +44,14 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-        <Toast />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+          <Toast />
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

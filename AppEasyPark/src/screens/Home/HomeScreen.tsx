@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
 import {
     View, Text, TouchableOpacity, ActivityIndicator,
     Animated, Easing, Modal, BackHandler,
@@ -13,6 +13,7 @@ import MapView, { Marker, Circle } from 'react-native-maps';
 
 // Navigation e Context
 import { RootStackScreenProps } from "../../navigation/types";
+import { AuthContext } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { lightMapStyle, darkMapStyle } from '../../theme/mapStyles';
@@ -43,6 +44,9 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const currentColors = colors[theme];
     const styles = getStyles(currentColors, theme);
 
+    const { signed, user } = useContext(AuthContext);
+    const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Visitante';
+
     // Invocando os Hooks
     const { location, initialRegion } = useLocation();
     const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
@@ -67,7 +71,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     }, [estacionamentosDaApi]);
 
     // Estados da UI
-    const [userName, setUserName] = useState<string>('Usuário');
     const [parkingSpots, setParkingSpots] = useState<any[]>([]); // Inicia vazio e preenche com a API
     const [searchCenter, setSearchCenter] = useState<{ latitude: number, longitude: number } | null>(null);
     const [destinationName, setDestinationName] = useState<string | null>(null);
@@ -93,11 +96,6 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             setParkingSpots(allFormattedSpots);
         }
     }, [allFormattedSpots]);
-
-    useEffect(() => {
-        AsyncStorage.getItem(STORAGE_KEYS.USER_NAME)
-            .then(name => name && setUserName(name.split(' ')[0]));
-    }, []);
 
     useFocusEffect(
         useCallback(() => {
@@ -183,6 +181,18 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     };
 
     const handleReserveClick = () => {
+
+        if (!signed) {
+            setSelectedSpot(null);
+            Toast.show({ 
+                type: 'info', 
+                text1: 'Quase lá!', 
+                text2: 'Crie uma conta grátis ou faça login para reservar sua vaga.' 
+            });
+            navigation.navigate('Login');
+            return;
+        }
+
         setSelectedPaymentId(savedPayments.length > 0 ? savedPayments[0].id : null);
         setIsConfirmationVisible(true);
         startTimer();

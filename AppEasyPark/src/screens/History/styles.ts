@@ -42,4 +42,49 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         fontFamily: 'Montserrat-Bold',
         color: currentColors.text,
     },
+    emptyStateContainer: {
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        marginTop: 50 
+    },
+    emptyStateText: {
+        fontFamily: 'Inter-Medium', 
+        color: currentColors.muted, 
+        fontSize: 16 
+    },
+    unauthContainer: {
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        paddingHorizontal: 30 
+    },
+    unauthTitle: {
+        fontFamily: 'Inter-Bold', 
+        color: currentColors.text, 
+        fontSize: 22, 
+        marginBottom: 12, 
+        textAlign: 'center' 
+    },
+    unauthDesc: {
+        fontFamily: 'Inter-Regular', 
+        color: currentColors.muted, 
+        fontSize: 16, 
+        textAlign: 'center', 
+        marginBottom: 32, 
+        lineHeight: 24 
+    },
+    primaryButton: {
+        backgroundColor: currentColors.primary, 
+        paddingVertical: 14, 
+        paddingHorizontal: 40, 
+        borderRadius: 8,
+        width: '100%',
+        alignItems: 'center'
+    },
+    primaryButtonText: {
+        fontFamily: 'Inter-SemiBold', 
+        color: '#121212', 
+        fontSize: 16 
+    }
 });

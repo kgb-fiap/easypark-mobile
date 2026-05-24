@@ -18,7 +18,6 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
 };
 
-// 2. A SOLUÇÃO AQUI: Nós dizemos exatamente o que cada variável vai ser!
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;

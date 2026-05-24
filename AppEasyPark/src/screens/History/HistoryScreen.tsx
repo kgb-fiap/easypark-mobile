@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, ListRenderItemInfo, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useContext } from 'react';
+import { View, Text, FlatList, ListRenderItemInfo, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 // Navigation e Context
+import { AuthContext } from '../../context/AuthContext';
 import { RootStackScreenProps } from "../../navigation/types";
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
@@ -36,17 +37,24 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
     const styles = getStyles(currentColors);
 
     // --- Estados da Tela ---
-    const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
+    const { signed } = useContext(AuthContext);
     const [isLoading, setIsLoading] = useState(true);
+    const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
 
     // --- Carregamento Dinâmico ---
     useFocusEffect(
         useCallback(() => {
+
+            if (!signed) {
+                setIsLoading(false);
+                return;
+            }
+
             const fetchHistory = async () => {
                 setIsLoading(true);
                 try {
                     const data = await profileService.getReservationHistory();
-                    
+
                     // Se não houver histórico de reservas é feito um Mock para simular como ficaria a tela com dados de reservas.
                     if (data.length === 0) {
                         setHistoryData([
@@ -56,7 +64,7 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
                     } else {
                         setHistoryData(data as HistoryItem[]);
                     }
-                     
+
                 } catch (error) {
                     console.error("Falha ao carregar histórico", error);
                 } finally {
@@ -65,7 +73,7 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
             };
 
             fetchHistory();
-        }, [])
+        }, [signed])
     );
 
     // Renderização com alta performance
@@ -75,7 +83,7 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
                 <View>
                     <Text style={styles.itemPlace}>{item.placeName || 'Estacionamento Easypark'}</Text>
                     <Text style={styles.itemDate}>{item.date}</Text>
-                    
+
                     {/* Componente Modular de Pagamento */}
                     <PaymentBadge type={item.payment?.type || 'money'} last4={item.payment?.last4} />
                 </View>
@@ -83,13 +91,33 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
             </View>
         );
     };
-    
+
     // Componente de lista vazia
     const renderEmptyState = () => (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }}>
-            <Text style={{ fontFamily: 'Inter-Medium', color: currentColors.muted, fontSize: 16 }}>
+        <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptyStateText}>
                 Você ainda não possui reservas.
             </Text>
+        </View>
+    );
+
+    const renderUnauthenticatedState = () => (
+        <View style={styles.unauthContainer}>
+            <Text style={styles.unauthTitle}>
+                Suas reservas em um só lugar
+            </Text>
+            <Text style={styles.unauthDesc}>
+                Acompanhe o histórico de seus estacionamentos, visualize seus recibos e refaça rotas facilmente.
+            </Text>
+
+            <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={() => navigation.navigate('Login')}
+            >
+                <Text style={styles.primaryButtonText}>
+                    Fazer Login
+                </Text>
+            </TouchableOpacity>
         </View>
     );
 
@@ -97,7 +125,9 @@ const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
         <View style={styles.container}>
             <Header title="Histórico" showBackButton={false} />
 
-            {isLoading ? (
+            {!signed ? (
+                renderUnauthenticatedState() // Se não logado, mostra a "Parede Suave"
+            ) : isLoading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color={currentColors.primary} />
                 </View>
