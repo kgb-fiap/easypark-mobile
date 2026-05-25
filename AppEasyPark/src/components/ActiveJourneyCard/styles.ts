@@ -4,7 +4,7 @@ import { ThemeColors } from '../../theme/colors';
 export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     cardContainer: {
         position: 'absolute',
-        bottom: Platform.OS === 'ios' ? 110 : 130,
+        bottom: Platform.OS === 'ios' ? 110 : 100,
         left: 20,
         right: 20,
         backgroundColor: currentColors.card,

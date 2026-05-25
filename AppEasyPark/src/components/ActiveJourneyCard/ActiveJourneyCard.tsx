@@ -49,7 +49,15 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
     }, [spotName]);
 
     return (
-        <View style={styles.cardContainer}>
+        <View style={[styles.cardContainer, { borderTopLeftRadius: 28, borderTopRightRadius: 28, elevation: 20 }]}>
+
+            <TouchableOpacity
+                onPress={onMinimize}
+                style={{ width: '100%', alignItems: 'center', paddingBottom: 15, paddingTop: 5 }}
+                activeOpacity={0.7}
+            >
+                <View style={{ width: 45, height: 5, borderRadius: 3, backgroundColor: currentColors.muted + '60' }} />
+            </TouchableOpacity>
 
             <View style={styles.headerRow}>
                 <View style={[styles.statusBadge, { backgroundColor: isPreReserva ? '#FF9800' : currentColors.primary }]}>
@@ -67,12 +75,16 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
                 </View>
             </View>
 
-            <View style={[styles.spotInfo, {
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginVertical: 3
-            }]}>
+            <TouchableOpacity 
+                activeOpacity={0.7}
+                onPress={onCenterMap}
+                style={[styles.spotInfo, {
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginVertical: 3
+                }]}
+            >
                 <Text style={[styles.spotTitle, {
                     textAlign: 'center',
                     fontSize: 18,
@@ -89,22 +101,21 @@ export const ActiveJourneyCard: React.FC<ActiveJourneyCardProps> = ({
                 }}>
                     Há {distanceKm.toFixed(1)} km de você • Chegada em ~{etaMinutes} min
                 </Text>
-            </View>
+            </TouchableOpacity>
 
             <View style={{ alignItems: 'center', marginVertical: 10 }}>
-                <View style={{
-                    backgroundColor: '#FFFFFF',
-                    padding: 16,
-                    borderRadius: 16,
+                <View style={{ 
+                    backgroundColor: '#FFFFFF', 
+                    padding: 18, 
+                    borderRadius: 20,
                     borderWidth: 1,
-                    borderColor: '#E5E5E5'
+                    borderColor: '#E5E5E5',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 10,
                 }}>
-                    <QRCode
-                        value={qrCodeValue}
-                        size={200}
-                        color="#000000"
-                        backgroundColor="#FFFFFF"
-                    />
+                    <QRCode value={qrCodeValue} size={200} color="#000000" backgroundColor="#FFFFFF" />
                 </View>
                 <Text style={{ fontFamily: 'Inter-Medium', fontSize: 12, color: currentColors.muted, marginTop: 8 }}>
                     Aproxime este código na catraca do estacionamento

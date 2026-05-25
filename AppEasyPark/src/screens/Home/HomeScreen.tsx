@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } 
 import {
     View, Text, TouchableOpacity, ActivityIndicator,
     Animated, Easing, Modal, BackHandler,
-    StyleSheet, Linking, Platform
+    StyleSheet, Linking, Platform, Image
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -407,7 +407,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     return (
         <View style={styles.container}>
 
-            {initialRegion && !isLoadingVagas ? (
+            {initialRegion ? (
                 <MapView
                     ref={mapRef}
                     style={StyleSheet.absoluteFillObject}
@@ -448,6 +448,14 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     )}
 
                     {parkingSpots.map(spot => {
+
+                        if (isActiveReservation && reservedSpot?.id !== spot.id) {
+                            return null;
+                        }
+
+                        const isSelected = selectedSpot?.id === spot.id;
+                        const isAnotherSpotSelected = !isActiveReservation && selectedSpot && !isSelected;
+
                         const isTheReservedSpot = reservedSpot?.id === spot.id;
 
                         return (
@@ -458,10 +466,18 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                                 onPress={() => {
                                     if (!isActiveReservation) {
                                         setSelectedSpot(spot);
+                                        if (mapRef.current) {
+                                            mapRef.current.animateToRegion({
+                                                latitude: spot.coords.latitude - 0.0015, 
+                                                longitude: spot.coords.longitude,
+                                                latitudeDelta: 0.010,
+                                                longitudeDelta: 0.005,
+                                            }, 800);
+                                        }
                                     }
                                 }}
                                 image={require('../../../assets/images/parking-icon.png')}
-                                opacity={isActiveReservation && !isTheReservedSpot ? 0.4 : 1}
+                                opacity={isAnotherSpotSelected ? 0.4 : 1}
                             />
                         );
                     })}
@@ -470,7 +486,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 <View style={styles.mapPlaceholder}>
                     <ActivityIndicator size="large" color={currentColors.primary} />
                     <Text style={styles.loadingText}>
-                        {isLoadingVagas ? 'Buscando vagas disponíveis...' : 'Encontrando sua localização...'}
+                        Buscando vagas disponíveis...
                     </Text>
                 </View>
             )}
@@ -616,35 +632,46 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             </Modal>
 
             {isActiveReservation && !isJourneyMinimized ? (
-                <ActiveJourneyCard
-                    spotName={reservedSpot?.title || "Estacionamento"}
-                    countdown={journeyCountdown}
-                    status={reservationStatus}
-                    distanceKm={currentDistance}
-                    onCenterMap={goToDestination}
-                    onNavigate={handleNavigateToSpot}
-                    onMinimize={() => setIsJourneyMinimized(true)}
-                    onCheckin={() => {
-                        stopJourneyTimer();
-                        setIsActiveReservation(false);
-                        setReservationStatus('PRE_RESERVA');
-                        setIsJourneyMinimized(false);
+                <>
+                    <TouchableOpacity
+                        activeOpacity={1}
+                        style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 10 }]}
+                        onPress={() => setIsJourneyMinimized(true)}
+                    />
 
-                        Notifications.scheduleNotificationAsync({
-                            content: {
-                                title: '✅ Check-in Realizado',
-                                body: `Bem-vindo ao ${reservedSpot?.title}! A catraca já foi liberada para sua entrada.`,
-                                sound: true,
-                            },
-                            trigger: null,
-                        });
-                        Toast.show({ type: 'success', text1: 'Check-in realizado!', text2: 'Bem-vindo ao estacionamento.' });
-                    }}
-                    onCancel={() => {
-                        handleCancelJourney();
-                        setIsJourneyMinimized(false);
-                    }}
-                />
+                    <View style={{ position: 'absolute', bottom: 0, width: '100%', zIndex: 20 }}>
+
+                        <ActiveJourneyCard
+                            spotName={reservedSpot?.title || "Estacionamento"}
+                            countdown={journeyCountdown}
+                            status={reservationStatus}
+                            distanceKm={currentDistance}
+                            onCenterMap={goToDestination}
+                            onNavigate={handleNavigateToSpot}
+                            onMinimize={() => setIsJourneyMinimized(true)}
+                            onCheckin={() => {
+                                stopJourneyTimer();
+                                setIsActiveReservation(false);
+                                setReservationStatus('PRE_RESERVA');
+                                setIsJourneyMinimized(false);
+
+                                Notifications.scheduleNotificationAsync({
+                                    content: {
+                                        title: '✅ Check-in Realizado',
+                                        body: `Bem-vindo ao ${reservedSpot?.title}! A catraca já foi liberada para sua entrada.`,
+                                        sound: true,
+                                    },
+                                    trigger: null,
+                                });
+                                Toast.show({ type: 'success', text1: 'Check-in realizado!', text2: 'Bem-vindo ao estacionamento.' });
+                            }}
+                            onCancel={() => {
+                                handleCancelJourney();
+                                setIsJourneyMinimized(false);
+                            }}
+                        />
+                    </View>
+                </>
             ) : (
                 <>
                     {!isActiveReservation && (
@@ -672,16 +699,58 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                         )
                     )}
 
-                    <TouchableOpacity
-                        style={[
-                            styles.recenterButton,
-                            destinationName ? { transform: [{ translateY: 25 }] } : {},
-                            (isActiveReservation && isJourneyMinimized) ? { marginTop: -60 } : {}
-                        ]}
-                        onPress={goToMyLocation}
-                    >
-                        <Ionicons name="locate" size={24} color={currentColors.text} />
-                    </TouchableOpacity>
+                    <View style={{
+                        position: 'absolute',
+                        right: 20,
+                        bottom: (isActiveReservation && isJourneyMinimized) ? 205 : 590,
+                        alignItems: 'center',
+                        gap: 12,
+                        zIndex: 10
+                    }}>
+                        
+                        {isActiveReservation && (
+                            <TouchableOpacity
+                                style={{
+                                    width: 45,
+                                    height: 45,
+                                    borderRadius: 25,
+                                    backgroundColor: currentColors.card,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    elevation: 5,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.3,
+                                    shadowRadius: 4,
+                                    borderWidth: 1,
+                                    borderColor: currentColors.border
+                                }}
+                                onPress={goToDestination} // 👈 Sua função já estava pronta!
+                            >
+                                <Ionicons name="flag" size={20} color={currentColors.primary} />
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={{
+                                width: 50,
+                                height: 50,
+                                borderRadius: 25,
+                                backgroundColor: currentColors.card,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                elevation: 5,
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 4,
+                            }}
+                            onPress={goToMyLocation}
+                        >
+                            <Ionicons name="locate" size={24} color={currentColors.text} />
+                        </TouchableOpacity>
+
+                    </View>
 
                     <BottomNavBar currentRoute="Home" />
                 </>
