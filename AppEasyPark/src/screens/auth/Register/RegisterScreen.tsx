@@ -35,7 +35,8 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
 
     // --- Lógica de Criação de Conta com FIREBASE ---
     const handleRegister = async () => {
-        // 1. Validações
+
+        // Validações
         if (!nome.trim() || !email.trim() || !senha || !confirmarSenha) {
             Toast.show({ type: 'error', text1: 'Atenção', text2: 'Por favor, preencha todos os campos.' });
             return;
@@ -54,7 +55,7 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
         setIsLoading(true); // Trava o botão e mostra feedback visual
 
         try {
-            // 2. Chama a função de registro do nosso serviço (Que já cria a conta e salva o nome no perfil do Firebase)
+            // Chama a função de registro do nosso serviço
             const { user, error } = await authService.register(email.trim(), senha, nome.trim());
 
             if (error) {
@@ -65,11 +66,10 @@ const RegisterScreen: React.FC<RootStackScreenProps<'Register'>> = ({ navigation
 
                 Toast.show({ type: 'error', text1: 'Erro no Cadastro', text2: errorMessage });
             } else if (user) {
-                // 3. O Firebase já loga o usuário automaticamente após criar a conta.
-                // Salvamos o nome localmente para a Home Screen exibir o "Olá, Nome".
+                // O Firebase já loga o usuário automaticamente após criar a conta.
                 await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, nome.trim());
 
-                Toast.show({ type: 'success', text1: 'Conta criada!', text2: 'Bem-vindo ao aplicativo.' });
+                Toast.show({ type: 'success', text1: 'Cadastro feito com sucesso!', text2: 'Bem-vindo ao EasyPark, sua vaga te aguarda!' });
 
                 // Limpa o histórico de navegação e joga direto para a Home
                 setTimeout(() => {

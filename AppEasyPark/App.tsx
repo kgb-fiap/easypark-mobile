@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { RootNavigator } from './src/navigation';
 import { useFonts } from 'expo-font';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
-import { RootNavigator } from './src/navigation';
+import { JourneyProvider } from './src/context/JourneyContext';
 import Toast from 'react-native-toast-message';
 
 import * as SplashScreen from 'expo-splash-screen';
@@ -46,9 +47,11 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider>
+          <JourneyProvider>
           <NavigationContainer>
             <RootNavigator />
           </NavigationContainer>
+          </JourneyProvider>
           <Toast />
         </ThemeProvider>
       </AuthProvider>

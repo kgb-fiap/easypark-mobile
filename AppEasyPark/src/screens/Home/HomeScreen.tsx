@@ -8,12 +8,14 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import Toast from 'react-native-toast-message';
 import MapView, { Marker, Circle } from 'react-native-maps';
 
 // Navigation e Context
 import { RootStackScreenProps } from "../../navigation/types";
 import { AuthContext } from '../../context/AuthContext';
+import { JourneyContext } from '../../context/JourneyContext';
 import { useTheme } from '../../context/ThemeContext';
 import { colors } from '../../theme/colors';
 import { lightMapStyle, darkMapStyle } from '../../theme/mapStyles';
@@ -38,6 +40,14 @@ interface PaymentItem {
     last4?: string;
 }
 
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
+
 const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route }) => {
 
     const { theme, toggleTheme } = useTheme();
@@ -47,18 +57,25 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const { signed, user } = useContext(AuthContext);
     const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Visitante';
 
+    const {
+        journeyCountdown, startJourneyTimer, stopJourneyTimer,
+        isActiveReservation, setIsActiveReservation,
+        reservationStatus, setReservationStatus,
+        reservedSpot, setReservedSpot,
+        isJourneyMinimized, setIsJourneyMinimized
+    } = useContext(JourneyContext);
+
     // Invocando os Hooks
     const { location, initialRegion } = useLocation();
     const { countdown, isActive, startTimer, stopTimer } = useCountdown(300);
-    const { countdown: journeyCountdown, startTimer: startJourneyTimer, stopTimer: stopJourneyTimer } = useCountdown(900);
-    
+
     // Chamada da API hospedada na Azure
     const { data: estacionamentosDaApi, isLoading: isLoadingVagas } = useEstacionamentos();
 
     // Traduzindo os dados para o formato esperado
     const allFormattedSpots = useMemo(() => {
         if (!estacionamentosDaApi) return [];
-        
+
         return estacionamentosDaApi.map(est => ({
             id: est.id.toString(),
             title: est.nome,
@@ -71,16 +88,18 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     }, [estacionamentosDaApi]);
 
     // Estados da UI
-    const [parkingSpots, setParkingSpots] = useState<any[]>([]); // Inicia vazio e preenche com a API
+    const [parkingSpots, setParkingSpots] = useState<any[]>([]);
     const [searchCenter, setSearchCenter] = useState<{ latitude: number, longitude: number } | null>(null);
     const [destinationName, setDestinationName] = useState<string | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
+    const [currentDistance, setCurrentDistance] = useState<number>(0);
+
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
     const [isPendingReturnToModal, setIsPendingReturnToModal] = useState(false);
+
     const [savedPayments, setSavedPayments] = useState<PaymentItem[]>([]);
     const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-    const [isActiveReservation, setIsActiveReservation] = useState(false);
-    const [reservedSpot, setReservedSpot] = useState<any>(null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     // Refs para Animações e Mapa
     const mapRef = useRef<MapView>(null);
@@ -88,6 +107,17 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const timerAnim = useRef(new Animated.Value(100)).current;
 
     // --- Efeitos de Ciclo de Vida ---
+
+    // Solicitação de permissão para Notificações
+    useEffect(() => {
+        const requestPermissions = async () => {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== 'granted') {
+                console.log('Permissão para notificações não concedida.');
+            }
+        };
+        requestPermissions();
+    }, []);
 
     // Sincroniza API com a tela
     useEffect(() => {
@@ -110,7 +140,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             AsyncStorage.getItem(STORAGE_KEYS.PAYMENT_METHODS)
                 .then(val => {
                     if (val) setSavedPayments(JSON.parse(val));
-                    
+
                     if (isPendingReturnToModal && selectedSpot) {
                         setIsConfirmationVisible(true);
                         setIsPendingReturnToModal(false);
@@ -136,6 +166,94 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'A reserva não foi confirmada a tempo.' });
         }
     }, [countdown, isActive, isConfirmationVisible]);
+
+    // --- Efeito de busca com filtro de raio ---
+    useEffect(() => {
+        if (route.params?.selectedSpotParams?.coords) {
+            const { latitude, longitude } = route.params.selectedSpotParams.coords;
+
+            setTimeout(() => {
+                if (mapRef.current) {
+                    mapRef.current.animateToRegion({
+                        latitude: latitude,
+                        longitude: longitude,
+                        latitudeDelta: 0.04,
+                        longitudeDelta: 0.04,
+                    }, 1000);
+                }
+
+                setSearchCenter({ latitude, longitude });
+
+                const labelName = route.params?.selectedSpotParams?.label;
+                if (labelName) {
+                    setDestinationName(labelName);
+                }
+
+                const spotsNearby = allFormattedSpots.filter(spot => {
+                    const distance = calculateDistance(
+                        latitude, longitude,
+                        spot.coords.latitude, spot.coords.longitude
+                    );
+                    return distance <= 1;
+                });
+
+                setParkingSpots(spotsNearby);
+
+                if (spotsNearby.length === 0) {
+                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 1km.' });
+                } else {
+                    Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
+                }
+
+                setTimeout(() => {
+                    navigation.setParams({ selectedSpotParams: undefined });
+                }, 1500);
+
+            }, 400);
+        }
+    }, [route.params?.selectedSpotParams, allFormattedSpots]);
+
+    // Gatilho de Urgência (Pré-reserva expirando)
+    useEffect(() => {
+        if (isActive && countdown === 60) {
+            Notifications.scheduleNotificationAsync({
+                content: {
+                    title: '⏳ Tempo Esgotando!',
+                    body: 'Sua pré-reserva expira em 1 minuto. Conclua o pagamento para não perder a vaga.',
+                    sound: true,
+                    data: { tipo: 'alerta_vaga' }, // Útil se for usar analytics depois
+                },
+                trigger: null, // trigger: null faz disparar imediatamente
+            });
+        }
+    }, [countdown, isActive]);
+
+    // Lógica de Geofencing (Pré-reserva -> Reserva)
+    useEffect(() => {
+        if (isActiveReservation && reservedSpot && location && reservationStatus === 'PRE_RESERVA') {
+            const distanciaKm = calculateDistance(
+                location.coords.latitude, location.coords.longitude,
+                reservedSpot.coords.latitude, reservedSpot.coords.longitude
+            );
+
+            // Se chegou a menos de 500 metros (0.5 km) do estacionamento
+            if (distanciaKm <= 0.5) {
+                setReservationStatus('RESERVA');
+                Toast.show({ type: 'success', text1: 'Destino Próximo!', text2: 'Sua vaga foi confirmada. Catraca liberada.' });
+            }
+        }
+    }, [location, isActiveReservation, reservedSpot, reservationStatus]);
+
+    // Lógica de timeout (Cancela a Pré-reserva se o tempo acabar)
+    useEffect(() => {
+        if (isActiveReservation && journeyCountdown === 0 && reservationStatus === 'PRE_RESERVA') {
+            stopJourneyTimer();
+            setIsActiveReservation(false);
+            setReservedSpot(null);
+            setReservationStatus('PRE_RESERVA');
+            Toast.show({ type: 'error', text1: 'Tempo Esgotado', text2: 'Você não chegou a tempo. Pré-reserva cancelada.' });
+        }
+    }, [journeyCountdown, isActiveReservation, reservationStatus]);
 
     // --- Handlers ---
     const goToMyLocation = () => {
@@ -184,10 +302,10 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
 
         if (!signed) {
             setSelectedSpot(null);
-            Toast.show({ 
-                type: 'info', 
-                text1: 'Quase lá!', 
-                text2: 'Crie uma conta grátis ou faça login para reservar sua vaga.' 
+            Toast.show({
+                type: 'info',
+                text1: 'Quase lá!',
+                text2: 'Crie uma conta grátis ou faça login para reservar sua vaga.'
             });
             navigation.navigate('Login');
             return;
@@ -207,17 +325,24 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     };
 
     const handleConfirmReservation = () => {
+
         if (!selectedPaymentId) {
             Toast.show({ type: 'error', text1: 'Atenção', text2: 'Escolha um método de pagamento.' });
             return;
         }
 
-        stopTimer(); 
-        setIsConfirmationVisible(false);
+        if (!acceptedTerms) {
+            Toast.show({ type: 'error', text1: 'Termos Obrigatórios', text2: 'Você precisa aceitar as políticas de cancelamento.' });
+            return;
+        }
 
-        setReservedSpot(selectedSpot); 
-        setSelectedSpot(null); 
-        setIsActiveReservation(true); 
+        stopTimer();
+        setIsConfirmationVisible(false);
+        setAcceptedTerms(false);
+
+        setReservedSpot(selectedSpot);
+        setSelectedSpot(null);
+        setIsActiveReservation(true);
         startJourneyTimer();
 
         if (selectedPaymentId === 'pix') {
@@ -264,10 +389,11 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
         stopTimer();
         timerAnim.stopAnimation();
         setIsConfirmationVisible(false);
+        setAcceptedTerms(false);
     };
 
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371; 
+        const R = 6371;
         const dLat = (lat2 - lat1) * (Math.PI / 180);
         const dLon = (lon2 - lon1) * (Math.PI / 180);
         const a =
@@ -275,54 +401,8 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
             Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; 
+        return R * c;
     };
-
-    // --- Efeito de busca com filtro de raio ---
-    useEffect(() => {
-        if (route.params?.selectedSpotParams?.coords) {
-            const { latitude, longitude } = route.params.selectedSpotParams.coords;
-
-            setTimeout(() => {
-                if (mapRef.current) {
-                    mapRef.current.animateToRegion({
-                        latitude: latitude,
-                        longitude: longitude,
-                        latitudeDelta: 0.04,
-                        longitudeDelta: 0.04,
-                    }, 1000);
-                }
-
-                setSearchCenter({ latitude, longitude });
-
-                const labelName = route.params?.selectedSpotParams?.label;
-                if (labelName) {
-                    setDestinationName(labelName);
-                }
-
-                const spotsNearby = allFormattedSpots.filter(spot => {
-                    const distance = calculateDistance(
-                        latitude, longitude,
-                        spot.coords.latitude, spot.coords.longitude
-                    );
-                    return distance <= 1;
-                });
-
-                setParkingSpots(spotsNearby);
-
-                if (spotsNearby.length === 0) {
-                    Toast.show({ type: 'info', text1: 'Poxa...', text2: 'Nenhum estacionamento em um raio de 1km.' });
-                } else {
-                    Toast.show({ type: 'success', text1: 'Destino Encontrado', text2: `Achamos ${spotsNearby.length} opções perto de você!` });
-                }
-
-                setTimeout(() => {
-                    navigation.setParams({ selectedSpotParams: undefined });
-                }, 1500);
-
-            }, 400);
-        }
-    }, [route.params?.selectedSpotParams, allFormattedSpots]);
 
     return (
         <View style={styles.container}>
@@ -464,9 +544,9 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                                 <TouchableOpacity
                                     style={styles.addButton}
                                     onPress={() => {
-                                        setIsPendingReturnToModal(true); 
-                                        setIsConfirmationVisible(false); 
-                                        navigation.navigate('PaymentMethods'); 
+                                        setIsPendingReturnToModal(true);
+                                        setIsConfirmationVisible(false);
+                                        navigation.navigate('PaymentMethods');
                                     }}
                                 >
                                     <Ionicons name="add-circle-outline" size={20} color={currentColors.primary} />
@@ -476,13 +556,46 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                         </View>
 
                         <View style={styles.footerSection}>
+
+                            <View style={{
+                                backgroundColor: theme === 'light' ? '#F9F9F9' : '#252525',
+                                padding: 12,
+                                borderRadius: 8,
+                                marginBottom: 15,
+                                borderWidth: 1,
+                                borderColor: currentColors.border
+                            }}>
+                                <Text style={{ fontFamily: 'Inter-Bold', fontSize: 13, color: '#D9534F', marginBottom: 10 }}>
+                                    ⚠️ Regras de Cancelamento:
+                                </Text>
+                                <Text style={{ fontFamily: 'Inter-Regular', fontSize: 11, color: currentColors.text, lineHeight: 16 }}>
+                                    • Esta vaga está temporariamente travada para você por 5 minutos. Se o pagamento não for detectado, ela ficará visível para outros motoristas.{'\n'}
+                                    • Cancelamento gratuito em até 30 min antes do horário previsto.{'\n'}
+                                    • Em caso de não comparecimento (no-show), será retida uma taxa de 20% do valor.
+                                </Text>
+
+                                <TouchableOpacity
+                                    style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}
+                                    onPress={() => setAcceptedTerms(!acceptedTerms)}
+                                >
+                                    <Ionicons
+                                        name={acceptedTerms ? "checkbox" : "square-outline"}
+                                        size={20}
+                                        color={acceptedTerms ? currentColors.primary : currentColors.muted}
+                                    />
+                                    <Text style={{ fontFamily: 'Inter-Medium', fontSize: 12, color: currentColors.text, marginLeft: 8 }}>
+                                        Li e concordo com as regras da vaga.
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
                             <View style={styles.timerContainer}>
                                 <View style={styles.timerBarBackground}>
                                     <Animated.View style={[styles.timerBarForeground, {
                                         width: timerAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] })
                                     }]} />
                                 </View>
-                                <Text style={styles.timerText}>Tempo restante: {formatTime(countdown)}</Text>
+                                <Text style={styles.timerText}>Tempo restante para pagar: {formatTime(countdown)}</Text>
                             </View>
 
                             <View style={styles.actionRow}>
@@ -490,7 +603,11 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                                     <Text style={styles.cancelText}>Cancelar</Text>
                                 </TouchableOpacity>
 
-                                <PrimaryButton title="Confirmar" onPress={handleConfirmReservation} containerStyle={{ flex: 1, marginLeft: 15 }} />
+                                <PrimaryButton
+                                    title="Confirmar reserva"
+                                    onPress={handleConfirmReservation}
+                                    containerStyle={{ flex: 1, marginLeft: 15 }}
+                                />
                             </View>
                         </View>
 
@@ -498,46 +615,69 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 </View>
             </Modal>
 
-            {isActiveReservation ? (
+            {isActiveReservation && !isJourneyMinimized ? (
                 <ActiveJourneyCard
                     spotName={reservedSpot?.title || "Estacionamento"}
                     countdown={journeyCountdown}
+                    status={reservationStatus}
+                    distanceKm={currentDistance}
                     onCenterMap={goToDestination}
                     onNavigate={handleNavigateToSpot}
+                    onMinimize={() => setIsJourneyMinimized(true)}
                     onCheckin={() => {
                         stopJourneyTimer();
                         setIsActiveReservation(false);
+                        setReservationStatus('PRE_RESERVA');
+                        setIsJourneyMinimized(false);
+
+                        Notifications.scheduleNotificationAsync({
+                            content: {
+                                title: '✅ Check-in Realizado',
+                                body: `Bem-vindo ao ${reservedSpot?.title}! A catraca já foi liberada para sua entrada.`,
+                                sound: true,
+                            },
+                            trigger: null,
+                        });
                         Toast.show({ type: 'success', text1: 'Check-in realizado!', text2: 'Bem-vindo ao estacionamento.' });
                     }}
-                    onCancel={handleCancelJourney}
+                    onCancel={() => {
+                        handleCancelJourney();
+                        setIsJourneyMinimized(false);
+                    }}
                 />
             ) : (
                 <>
-                    {destinationName ? (
-                        <View style={[styles.searchBar, { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: currentColors.card, borderColor: currentColors.primary, borderWidth: 1 }]}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
-                                <Ionicons name="flag" size={20} color={currentColors.primary} style={{ marginRight: 10 }} />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontFamily: 'Inter-Medium', fontSize: 12, color: currentColors.muted }}>Destino selecionado:</Text>
-                                    <Text style={{ fontFamily: 'Inter-Bold', fontSize: 15, color: currentColors.text }} numberOfLines={1}>{destinationName}</Text>
+                    {!isActiveReservation && (
+                        destinationName ? (
+                            <View style={[styles.searchBar, { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: currentColors.card, borderColor: currentColors.primary, borderWidth: 1 }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, overflow: 'hidden' }}>
+                                    <Ionicons name="flag" size={20} color={currentColors.primary} style={{ marginRight: 10 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontFamily: 'Inter-Medium', fontSize: 12, color: currentColors.muted }}>Destino selecionado:</Text>
+                                        <Text style={{ fontFamily: 'Inter-Bold', fontSize: 15, color: currentColors.text }} numberOfLines={1}>{destinationName}</Text>
+                                    </View>
                                 </View>
+
+                                <TouchableOpacity onPress={handleClearDestination} style={{ padding: 5 }}>
+                                    <Ionicons name="close-circle" size={24} color={currentColors.muted} />
+                                </TouchableOpacity>
                             </View>
-                            
-                            <TouchableOpacity onPress={handleClearDestination} style={{ padding: 5 }}>
-                                <Ionicons name="close-circle" size={24} color={currentColors.muted} />
+                        ) : (
+                            <TouchableOpacity style={[styles.searchBar, { flexDirection: 'row', alignItems: 'center' }]} onPress={() => navigation.navigate("Search")}>
+                                <Ionicons name="search" size={20} color={currentColors.text} style={{ marginRight: 10 }} />
+                                <Text style={[styles.searchBarPlaceholder, { flex: 1 }]} numberOfLines={1}>
+                                    Onde sua vaga te espera?
+                                </Text>
                             </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <TouchableOpacity style={[styles.searchBar, { flexDirection: 'row', alignItems: 'center' }]} onPress={() => navigation.navigate("Search")}>
-                            <Ionicons name="search" size={20} color={currentColors.text} style={{ marginRight: 10 }} />
-                            <Text style={[styles.searchBarPlaceholder, { flex: 1 }]} numberOfLines={1}>
-                                Onde sua vaga te espera?
-                            </Text>
-                        </TouchableOpacity>
+                        )
                     )}
 
-                    <TouchableOpacity 
-                        style={[styles.recenterButton, destinationName ? { transform: [{ translateY: 25 }] } : {}]} 
+                    <TouchableOpacity
+                        style={[
+                            styles.recenterButton,
+                            destinationName ? { transform: [{ translateY: 25 }] } : {},
+                            (isActiveReservation && isJourneyMinimized) ? { marginTop: -60 } : {}
+                        ]}
                         onPress={goToMyLocation}
                     >
                         <Ionicons name="locate" size={24} color={currentColors.text} />

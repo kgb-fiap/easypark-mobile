@@ -25,7 +25,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         marginBottom: 15,
     },
     statusBadge: {
-        backgroundColor: currentColors.primary + '20', // 20% de opacidade
+        backgroundColor: currentColors.primary + '20',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 12,
@@ -62,7 +62,7 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: currentColors.background,
-        paddingVertical: 15,
+        paddingVertical: 10,
         borderRadius: 12,
         marginBottom: 20,
         borderWidth: 1,
@@ -76,12 +76,12 @@ export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
     },
     timerValue: {
         fontFamily: 'Montserrat-Bold',
-        fontSize: 36, // Fonte gigante para fácil visualização
+        fontSize: 36,
         color: currentColors.text,
         letterSpacing: 2,
     },
     timerWarning: {
-        color: '#D9534F', // Fica vermelho quando o tempo está acabando
+        color: '#D9534F',
     },
     actionButtons: {
         flexDirection: 'row',
