@@ -31,7 +31,7 @@ interface HistoryItem {
     payment: PaymentItemMock;
 }
 
-const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = () => {
+const HistoryScreen: React.FC<RootStackScreenProps<'History'>> = ({ navigation, route }) => {
     const { theme } = useTheme();
     const currentColors = colors[theme];
     const styles = getStyles(currentColors);
