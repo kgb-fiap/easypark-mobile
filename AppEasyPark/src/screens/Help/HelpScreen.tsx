@@ -58,6 +58,14 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
                     rightIconName="chevron-forward"
                     onPress={() => { /* Futura tela de FAQ */ }}
                 />
+
+                <ActionCard 
+                    title="Sobre o App"
+                    description="Versão e informações técnicas."
+                    leftIconName="information-circle-outline"
+                    rightIconName="chevron-forward"
+                    onPress={() => navigation.navigate('About')} 
+                />
             </ScrollView>
         </View>
     );

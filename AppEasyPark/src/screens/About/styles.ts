@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
+import { ThemeColors } from '../../theme/colors';
 
-export const getStyles = (colors: any) => {
+export const getStyles = (colors: ThemeColors) => {
     return StyleSheet.create({
         container: {
             flex: 1,
@@ -14,7 +15,11 @@ export const getStyles = (colors: any) => {
         logoContainer: {
             alignItems: 'center',
             marginBottom: 30,
-            marginTop: 10,
+            marginTop: 30,
+        },
+        logoImage: {
+            width: 160,
+            height: 160,
         },
         appName: {
             fontFamily: 'Montserrat-Bold',
@@ -22,6 +27,9 @@ export const getStyles = (colors: any) => {
             color: colors.text,
             marginTop: 10,
             textAlign: 'center',
+        },
+        titleAccent: {
+            color: colors.primary,
         },
         appSlogan: {
             fontFamily: 'Inter-Regular',
@@ -58,6 +66,11 @@ export const getStyles = (colors: any) => {
             fontFamily: 'Inter-Bold',
             fontSize: 15,
             color: colors.text,
+        },
+        cardValuePrimary: {
+            fontFamily: 'Inter-Bold',
+            fontSize: 15,
+            color: colors.primary,
         },
         githubButton: {
             flexDirection: 'row',
