@@ -25,6 +25,7 @@ import { getStyles } from './styles';
 import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
 import { PrimaryButton } from '../../components/PrimaryButton/PrimaryButton';
 import { ActiveJourneyCard } from '../../components/ActiveJourneyCard/ActiveJourneyCard';
+import { AuthModal } from '../../components/AuthModal/AuthModal';
 import { useLocation } from '../../hooks/useLocation';
 import { useCountdown } from '../../hooks/useCountdown';
 import { formatTime } from '../../utils/formatters';
@@ -93,6 +94,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const [destinationName, setDestinationName] = useState<string | null>(null);
     const [selectedSpot, setSelectedSpot] = useState<any>(null);
     const [currentDistance, setCurrentDistance] = useState<number>(0);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
     const [isPendingReturnToModal, setIsPendingReturnToModal] = useState(false);
@@ -301,13 +303,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
     const handleReserveClick = () => {
 
         if (!signed) {
-            setSelectedSpot(null);
-            Toast.show({
-                type: 'info',
-                text1: 'Quase lá!',
-                text2: 'Crie uma conta grátis ou faça login para reservar sua vaga.'
-            });
-            navigation.navigate('Login');
+            setShowAuthModal(true);
             return;
         }
 
@@ -725,7 +721,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                                     borderWidth: 1,
                                     borderColor: currentColors.border
                                 }}
-                                onPress={goToDestination} // 👈 Sua função já estava pronta!
+                                onPress={goToDestination}
                             >
                                 <Ionicons name="flag" size={20} color={currentColors.primary} />
                             </TouchableOpacity>
@@ -755,6 +751,21 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                     <BottomNavBar currentRoute="Home" />
                 </>
             )}
+
+            <AuthModal 
+                visible={showAuthModal} 
+                onClose={() => setShowAuthModal(false)} 
+                onLoginPress={() => {
+                    setShowAuthModal(false);
+                    navigation.navigate('Login');
+                }} 
+                icon="car-sport-outline" 
+                title="Garanta sua vaga"
+                description="Para confirmar sua reserva e gerar o seu QR Code de acesso, você só precisa entrar na sua conta. É rápido e seguro!"
+                primaryButtonText="Acessar e Reservar"
+                secondaryButtonText="Voltar ao mapa"
+            />
+            
         </View>
     );
 };

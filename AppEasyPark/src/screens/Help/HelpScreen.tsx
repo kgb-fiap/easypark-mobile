@@ -32,7 +32,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
                 <Text style={styles.sectionTitle}>Recursos do Projeto</Text>
 
                 <ActionCard 
-                    title="Apresentação do Projeto (Pitch)"
+                    title="Pitch do Projeto"
                     description="Assista ao vídeo de apresentação"
                     leftIconName="videocam-outline"
                     rightIconName="open-outline"
@@ -53,7 +53,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
 
                 <ActionCard 
                     title="Perguntas Frequentes (FAQ)"
-                    description="Encontre respostas para dúvidas comuns."
+                    description="Encontre respostas para dúvidas comuns"
                     leftIconName="help-circle-outline"
                     rightIconName="chevron-forward"
                     onPress={() => { /* Futura tela de FAQ */ }}
@@ -61,7 +61,7 @@ const HelpScreen: React.FC<RootStackScreenProps<'Help'>> = ({ navigation }) => {
 
                 <ActionCard 
                     title="Sobre o App"
-                    description="Versão e informações técnicas."
+                    description="Versão e informações técnicas"
                     leftIconName="information-circle-outline"
                     rightIconName="chevron-forward"
                     onPress={() => navigation.navigate('About')} 

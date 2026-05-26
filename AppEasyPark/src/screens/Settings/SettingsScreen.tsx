@@ -15,6 +15,7 @@ import { getStyles } from './styles';
 import { Header } from '../../components/Header/Header';
 import { BottomNavBar } from '../../components/BottomNavBar/BottomNavBar';
 import { ActionCard } from '../../components/ActionCard/ActionCard';
+import { AuthModal } from '../../components/AuthModal/AuthModal';
 import { STORAGE_KEYS } from '../../utils/constants';
 
 // Firebase Services
@@ -108,44 +109,16 @@ const SettingsScreen: React.FC<RootStackScreenProps<'Settings'>> = ({ navigation
             </ScrollView>
 
             {/* Modal de convite para login */}
-            <Modal
+            <AuthModal
                 visible={showAuthModal}
-                transparent={true}
-                animationType="slide"
-                onRequestClose={() => setShowAuthModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-
-                    <View style={styles.modalCard}>
-                        <Ionicons name="lock-closed" size={48} color={currentColors.primary} style={styles.modalIcon} />
-
-                        <Text style={styles.modalTitle}>
-                            Acesso Restrito
-                        </Text>
-
-                        <Text style={styles.modalDesc}>
-                            Crie uma conta gratuita para gerenciar seu perfil, adicionar veículos e configurar pagamentos.
-                        </Text>
-
-                        <TouchableOpacity
-                            style={styles.modalButtonPrimary}
-                            onPress={() => {
-                                setShowAuthModal(false);
-                                navigation.navigate('Login');
-                            }}
-                        >
-                            <Text style={styles.modalButtonPrimaryText}>Fazer Login ou Cadastro</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.modalButtonSecondary}
-                            onPress={() => setShowAuthModal(false)}
-                        >
-                            <Text style={styles.modalButtonSecondaryText}>Agora não</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
+                onClose={() => setShowAuthModal(false)}
+                onLoginPress={() => navigation.navigate('Login')}
+                icon="sparkles-outline"
+                title="Sua experiência EasyPark"
+                description="Crie seu perfil para garantir sua vaga, acessar o histórico de faturas e ganhar agilidade no dia a dia."
+                primaryButtonText="Começar agora"
+                secondaryButtonText="Mais tarde"
+            />
 
             <BottomNavBar currentRoute="Settings" />
         </View>

@@ -1,34 +1,7 @@
 import { StyleSheet } from 'react-native';
-import { ThemeColors } from '../../theme/colors';
 
-export const getStyles = (currentColors: ThemeColors) => StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: currentColors.background,
-    },
-    scrollContainer: {
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 100,
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: currentColors.card,
-        padding: 15,
-        borderRadius: 8,
-        marginTop: 30,
-        borderWidth: 1,
-        borderColor: '#D9534F',
-    },
-    logoutButtonText: {
-        color: '#D9534F',
-        fontSize: 16,
-        fontFamily: 'Inter-Bold',
-        marginLeft: 10,
-    },
-modalOverlay: {
+export const getStyles = (currentColors: any) => StyleSheet.create({
+    modalOverlay: {
         flex: 1, 
         backgroundColor: 'rgba(0,0,0,0.6)', 
         justifyContent: 'flex-end',
@@ -37,7 +10,7 @@ modalOverlay: {
         backgroundColor: currentColors.background, 
         paddingHorizontal: 24, 
         paddingTop: 12, 
-        paddingBottom: 32,
+        paddingBottom: 32, 
         borderTopLeftRadius: 30, 
         borderTopRightRadius: 30,
         alignItems: 'center',
@@ -64,7 +37,7 @@ modalOverlay: {
         marginBottom: 20,
     },
     modalTitle: {
-        fontFamily: 'Montserrat-Bold',
+        fontFamily: 'Montserrat-Bold', 
         color: currentColors.text, 
         fontSize: 22, 
         marginBottom: 10, 
@@ -75,8 +48,8 @@ modalOverlay: {
         color: currentColors.muted, 
         fontSize: 15, 
         textAlign: 'center', 
-        marginBottom: 30,
-        lineHeight: 22,
+        marginBottom: 30, 
+        lineHeight: 22, 
     },
     modalButtonPrimary: {
         backgroundColor: currentColors.primary, 
@@ -105,5 +78,16 @@ modalOverlay: {
         fontFamily: 'Inter-Medium', 
         color: currentColors.muted, 
         fontSize: 15,
-    }
+    },
+    imageContainer: {
+        width: 120,
+        height: 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    modalImage: {
+        width: '100%',
+        height: '100%',
+    },
 });

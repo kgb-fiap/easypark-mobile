@@ -1,4 +1,13 @@
 import 'dotenv/config';
+import { execSync } from 'child_process';
+
+// Busca o Hash do Git dinamicamente no seu computador
+let commitHash = 'dev-build';
+try {
+    commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (e) {
+    console.log("Aviso: Não foi possível ler o Git Hash. O projeto está com o Git iniciado?");
+}
 
 export default {
   "expo": {
@@ -44,6 +53,9 @@ export default {
     "plugins": [
       "expo-font",
       "expo-location"
-    ]
+    ],
+    "extra": {
+      "commitHash": commitHash
+    }
   }
 };

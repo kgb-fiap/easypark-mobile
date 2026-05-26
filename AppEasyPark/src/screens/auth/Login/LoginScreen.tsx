@@ -74,7 +74,7 @@ const LoginScreen: React.FC<RootStackScreenProps<'Login'>> = ({ navigation }) =>
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => navigation.navigate("Welcome")}>
+                        <TouchableOpacity onPress={() => navigation.goBack()}>
                             <Ionicons
                                 name={"return-down-back"}
                                 size={26}
