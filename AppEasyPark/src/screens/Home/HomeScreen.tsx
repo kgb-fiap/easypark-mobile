@@ -46,6 +46,8 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
+        shouldShowBanner: true, 
+        shouldShowList: true,
     }),
 });
 
@@ -765,7 +767,7 @@ const HomeScreen: React.FC<RootStackScreenProps<'Home'>> = ({ navigation, route 
                 primaryButtonText="Acessar e Reservar"
                 secondaryButtonText="Voltar ao mapa"
             />
-            
+
         </View>
     );
 };
