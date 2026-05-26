@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Platform, Dimensions } from 'react-native';
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { View, Text, TouchableOpacity, FlatList, Platform, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import { GooglePlacesAutocomplete, GooglePlacesAutocompleteRef } from 'react-native-google-places-autocomplete';
 
 // Navigation e Context
