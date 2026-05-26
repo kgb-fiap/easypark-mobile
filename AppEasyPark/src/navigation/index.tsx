@@ -16,6 +16,7 @@ import PaymentMethodsScreen from "../screens/Payment/Methods/PaymentMethodsScree
 import PixPaymentScreen from "../screens/Payment/Pix/PixPaymentScreen";
 import UserPreferencesScreen from "../screens/UserPreferences/UserPreferencesScreen";
 import HelpScreen from "../screens/Help/HelpScreen";
+import AboutScreen from '../screens/About/AboutScreen';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -43,6 +44,7 @@ export const RootNavigator = () => {
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="UserPreferences" component={UserPreferencesScreen} />
             <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
 
             {/* Telas condicionais */}
             {!signed ? (

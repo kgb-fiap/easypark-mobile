@@ -22,6 +22,7 @@ export type RootStackParamList = {
     PaymentMethods: undefined;
     PixPayment: undefined;
     Help: undefined;
+    About: undefined;
 };
 
 // Helper para tipar as props das telas automaticamente
