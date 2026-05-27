@@ -130,24 +130,21 @@ AppEasyPark/
 
 ---
 
-## **🚀 Como testar o aplicativo**
+## **🚀 Como testar o aplicativo (Fluxo Principal)**
 
 Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de autenticação e o consumo de dados seguindo os passos abaixo:
 
-### **Opção 1: Criar uma Nova Conta (Cadastro)**
-1. Ao abrir o aplicativo, clique em **"Cadastre-se"** na tela de Boas-Vindas.
-2. Preencha os campos com dados reais ou fictícios.
-3. Após o sucesso, sua conta será criada no banco de dados e você será logado e redirecionado automaticamente para a Home.
+### **1. Criar Conta ou Fazer Login**
+Ao abrir o app, teste o fluxo de autenticação real. Crie uma conta ou faça login. Suas credenciais serão validadas diretamente nos servidores do Firebase.
 
-### **Opção 2: Fazer Login (Conta Existente)**
-1. Na tela de Boas-Vindas, clique em **"Fazer Login"** (ou utilize o link de redirecionamento na parte inferior da tela de Cadastro).
-2. Insira as credenciais da conta que você criou anteriormente.
-3. O Firebase validará a sua sessão de forma segura e liberará o seu acesso à plataforma.
+### **2. Mapa e Reserva**
+Na Home, permita o acesso ao GPS. Navegue pelo mapa interativo, clique em um pino de estacionamento e em seguida em "Reservar Vaga". Acompanhe o modal dinâmico e o timer de confirmação.
 
-### **🧪 O que testar após o acesso?**
-* **Mapa e Vagas da Azure:** Na Home, observe os pinos de estacionamento sendo carregados dinamicamente através do consumo da nossa API na Azure.
-* **Fluxo de Reserva:** Selecione um estacionamento no mapa, clique em "Reservar Vaga" e acompanhe o modal de pagamento e o timer regressivo de 5 minutos.
-* **Persistência na Nuvem:** Acesse a tela de Busca, pesquise por alguns endereços, feche o aplicativo completamente e abra de novo. O **Cloud Firestore** irá recuperar o seu histórico de pesquisas exatamente como você deixou.
+### **3. Persistência de Histórico Híbrida**
+Acesse a tela de Busca e pesquise um destino.
+
+* Se você estiver **logado**, o histórico será salvo na nuvem. Você pode fechar o app e as buscas continuarão lá.
+* Se estiver navegando como **visitante**, o histórico será mantido no armazenamento local do aparelho.
 
 ---
 
