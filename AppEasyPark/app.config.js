@@ -41,6 +41,7 @@ export default {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.appeasypark",
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": process.env.GOOGLE_MAPS_API_KEY 
@@ -55,7 +56,10 @@ export default {
       "expo-location"
     ],
     "extra": {
-      "commitHash": commitHash
+      "commitHash": commitHash,
+      "eas": {
+        "projectId": "ed2ac28f-9e0f-4edb-99ca-b4f3ea011fe0"
+      }
     }
   }
 };

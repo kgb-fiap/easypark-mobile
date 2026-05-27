@@ -2,6 +2,7 @@
 
 # ambient variables
 .env
+google-services.json
 
 # dependencies
 node_modules/

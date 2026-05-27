@@ -2,7 +2,7 @@
 
 Bem-vindo ao repositório do EasyPark, um aplicativo móvel desenvolvido com React Native e Expo, projetado para modernizar a forma como motoristas encontram e gerenciam vagas de estacionamento, oferecendo uma experiência de usuário limpa, intuitiva e eficiente.
 
-O foco do projeto é oferecer uma experiência de usuário limpa, intuitiva e eficiente, inspirada em aplicativos de mobilidade de ponta, com funcionalidades robustas como mapa interativo, sistema de temas e um fluxo de reserva seguro.
+O projeto é inspirado em aplicativos de mobilidade de ponta, contando com funcionalidades robustas como mapa interativo, sistema de temas nativo, fluxo de reserva seguro e persistência de dados em nuvem.
 
 ---
 
@@ -13,7 +13,7 @@ O design do aplicativo foi criado no Figma, focando em uma interface minimalista
 | 📌 Recurso | 🔗 Acesso Rápido |
 | :--- | :--- |
 | **🎨 Protótipo Interativo (Figma)** | [Clique aqui para acessar o protótipo](https://www.figma.com/design/JK1tLDODiaIMuWVRm5RLj9/sprint-easypark?node-id=0-1&t=seFXZbeEQUWYYbMi-1) |
-| **🎥 Demonstração de Navegação** | [Clique aqui para assistir ao vídeo](https://youtube.com/shorts/Eyyer4U6Cto?feature=share) |
+<!-- | **🎥 Demonstração de Navegação** | [Clique aqui para assistir ao vídeo](https://youtube.com/shorts/Eyyer4U6Cto?feature=share) | -->
 
 ---
 
@@ -23,56 +23,40 @@ O EasyPark nasceu da necessidade de otimizar a gestão de estacionamentos, subst
 
 ### **Principais Funcionalidades Implementadas:**
 
-* **✅ Autenticação de Usuário:** Fluxo completo de Cadastro (com validação) e Login. Os dados são persistidos localmente no AsyncStorage para simular um banco de dados.  
-* **🗺️ Mapa Interativo (Google Maps):**  
-  * Renderização do mapa nativo (react-native-maps) com a chave de API protegida.  
-  * Solicitação de permissão e centralização na localização atual do usuário (ou na FIAP como fallback).  
-  * Renderização de marcadores de estacionamento com ícones customizados.  
-  * Destaque visual (efeito "halo") para o marcador selecionado.  
-  * Botão customizado para recentralizar o mapa.  
-* **🔍 Busca de Endereços (Nominatim API):**  
-  * Tela de busca que pesquisa endereços "as-you-type" (conforme o usuário digita) usando debounce para evitar chamadas excessivas à API.  
-  * Formatação inteligente dos endereços da API (Rua, Bairro, Município, CEP).  
-  * Sistema de "Buscas Recentes" salvo no AsyncStorage.  
-* **🅿️ Fluxo de Reserva:**  
-  * Ao clicar em um marcador, um painel inferior (bottom-sheet) animado desliza suavemente para cima.  
-  * Ao clicar em "Reservar Vaga", um modal de 70% da tela é ativado, escurecendo o fundo para focar a atenção.  
-  * O modal exibe uma lista dinâmica de métodos de pagamento (Cartões salvos, Pix, Dinheiro).  
-  * Um **timer regressivo de 30 segundos** com barra de progresso visual é iniciado, simulando o tempo para confirmar a reserva.  
-* **🎨 Tema Dinâmico (Dark Mode):**  
-  * Interface com modos claro e escuro. A preferência é salva no AsyncStorage e a StatusBar do celular se adapta automaticamente.  
-* **💳 Gerenciamento de Pagamentos:**  
-  * Tela dedicada para o usuário adicionar e remover cartões de crédito.  
-* **💾 Persistência de Dados (Simulação de API):**  
-  * O aplicativo usa AsyncStorage para simular um banco de dados de usuário, salvando credenciais, preferências de tema, cartões de crédito e buscas recentes.  
-  * Usa uma camada de serviço de mock (apiService.ts) para carregar dados estáticos (como a lista de estacionamentos) com um atraso, simulando uma chamada de rede.  
-* **🔔 Notificações Modernas:**  
-  * Uso de "toasts" (react-native-toast-message) para mensagens de erro e sucesso, proporcionando uma experiência de usuário mais fluida.
+* **✅ Autenticação Real em Nuvem:** Fluxo completo e seguro de Cadastro e Login integrado nativamente com o **Firebase Authentication**.
+* **🗺️ Mapa Interativo (Google Maps):** * Renderização nativa com `react-native-maps` e chaves de API protegidas via `.env`.
+  * Solicitação de permissão de GPS e centralização na localização atual do usuário (ou na FIAP como fallback).
+  * Renderização de marcadores com destaque visual (efeito "halo") para a vaga selecionada.
+* **🔍 Busca de Endereços Inteligente (Google Places API):** * Pesquisa de endereços "as-you-type" usando o `react-native-google-places-autocomplete`.
+  * **Persistência Híbrida:** Histórico de "Buscas Recentes" salvo no *Firebase Firestore* (para usuários logados) ou no *AsyncStorage* (para visitantes locais).
+  * Opção rápida de "Usar minha localização atual".
+* **🅿️ Fluxo de Reserva Contextual:** * Modal interativo exibindo métodos de pagamento.
+  * Timer regressivo simulando o tempo máximo de confirmação da reserva.
+* **🎨 Tema Dinâmico (Dark/Light Mode):** * Interface responsiva ao tema do sistema operacional, com preferência salva localmente.
+* **🔒 Auditoria e CI/CD (EAS Build):** * Injeção dinâmica do *Git Commit Hash* nos metadados do aplicativo via `app.config.js` para rastreabilidade de versão em ambiente de testes.
+  * Builds automatizados na nuvem utilizando o *Expo Application Services (EAS)*.
 
 ---
 
 ## **🛠️ Tecnologias Utilizadas**
 
-Este projeto foi construído utilizando tecnologias modernas do ecossistema React Native:
+O ecossistema do projeto foi construído com ferramentas de padrão internacional da indústria mobile:
 
-* **Framework:** React Native com Expo  
-* **Linguagem:** TypeScript  
-* **Navegação:** React Navigation (Stack Navigator)  
-* **Armazenamento Local:** @react-native-async-storage/async-storage  
-* **Mapas e Localização:** react-native-maps (Google Maps), expo-location  
-* **Busca de Endereços:** API Nominatim (OpenStreetMap)  
-* **UI e Animação:** Animated, Modal, expo-status-bar, expo-navigation-bar  
-* **Notificações:** react-native-toast-message  
-* **Fontes:** expo-font, expo-splash-screen  
-* **Configuração:** dotenv, app.config.js
+* **Framework:** React Native + Expo
+* **Linguagem:** TypeScript
+* **Backend as a Service:** Firebase (Auth & Cloud Firestore)
+* **Mapas e Localização:** Google Maps API, Google Places API, `expo-location`
+* **Armazenamento Local:** `@react-native-async-storage/async-storage`
+* **Navegação:** React Navigation (Stack)
+* **DevOps & Build:** Expo EAS (Application Services), `dotenv` para injeção de variáveis
 
 ---
 
 ## **⚙️ Configuração e Instalação**
 
-Siga os passos abaixo para rodar o projeto em seu ambiente de desenvolvimento.
+Siga os passos abaixo para rodar o projeto localmente.
 
-**Pré-requisitos:** Node.js, Watchman (para macOS) e um emulador Android ou iOS configurado.
+**Pré-requisitos:** Node.js instalado e o aplicativo Expo Go no celular (ou um emulador configurado).
 
 1. **Clone o repositório:**
 ```bash
