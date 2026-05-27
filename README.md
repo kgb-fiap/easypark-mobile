@@ -111,28 +111,31 @@ O projeto segue uma estrutura de pastas organizada para facilitar a manutenção
 
 ```
 AppEasyPark/
-├── assets/                  # Ativos globais (logos, ícones de parking)
-├── src/                     # Núcleo do Aplicativo
+├── assets/                  # Ativos globais (logótipos, ícones, imagens)
+├── src/                     # Núcleo do código-fonte do projeto
 │   ├── api/                 # Conexão com API Azure e Hooks do TanStack Query
-│   ├── services/            # Integração com terceiros (Firebase Auth, Firestore)
-│   ├── context/             # Provedores de estado global (Tema, etc)
+│   ├── components/          # Componentes de interface reutilizáveis
+│   ├── context/             # Provedores de estado global
 │   ├── hooks/               # Lógica de negócio reutilizável (Location, Countdown)
 │   ├── navigation/          # Orquestração de rotas e Tipagem Global
 │   ├── screens/             # Telas organizadas por Feature
-│   ├── theme/               # Design System (Cores, MapStyles)
-│   ├── types/               # Interfaces globais do sistema
+│   ├── services/            # Integração com terceiros (Firebase Auth, Firestore)
+│   ├── theme/               # Design System (Cores, Estilos do mapa)
+│   ├── types/               # Interfaces globais do TypeScript
 │   └── utils/               # Funções utilitárias (formatadores, validadores)
-├── App.tsx                  # Ponto de entrada e Providers
-├── app.config.js            # Configuração dinâmica do Expo
-├── .env                     # Variáveis de ambiente secretas
-└── package.json             # Dependências e scripts
+├── .dockerignore            # Regras de exclusão de ficheiros para o Docker
+├── .gitignore               # Regras de segurança do repositório
+├── app.config.js            # Configuração dinâmica do Expo e injeção do Git Hash
+├── App.tsx                  # Ponto de entrada principal e Provedores
+├── Dockerfile               # Receita de contentorização para infraestrutura
+├── eas.json                 # Configuração da pipeline de build na nuvem (EAS)
+├── package-lock.json        # Árvore de versões exatas das dependências
+└── package.json             # Gestor de dependências e scripts do projeto
 ```
 
 ---
 
 ## **🚀 Como testar o aplicativo (Fluxo Principal)**
-
-Com a nova arquitetura em nuvem integrada, você pode testar o fluxo completo de autenticação e o consumo de dados seguindo os passos abaixo:
 
 ### **1. Criar Conta ou Fazer Login**
 Ao abrir o app, teste o fluxo de autenticação real. Crie uma conta ou faça login. Suas credenciais serão validadas diretamente nos servidores do Firebase.
